@@ -8,12 +8,15 @@ project(LoggerPhaseOne VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 4. Define your Source and Header files
+# 4. Define Source and Header files
 set(SOURCES
     app/main.cpp
     src/LogManager.cpp
     src/LogSinks.cpp
     src/LogMessage.cpp
+    src/TelemetrySources.cpp
+    src/SafeFile.cpp
+    src/SafeSocket.cpp
 )
 
 set(HEADERS
