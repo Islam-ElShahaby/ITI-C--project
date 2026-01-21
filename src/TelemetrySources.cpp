@@ -138,8 +138,8 @@ bool MemoryTelemetrySource::readSource(std::string& out) {
 
     if (totalMem > 0) {
         double usedPercent = (double)(totalMem - availableMem) / totalMem * 100.0;
-        out = "Memory Usage: " + std::to_string(usedPercent) + "% (" + 
-              std::to_string(totalMem - availableMem) + "/" + std::to_string(totalMem) + " kB)";
+        double usedMB = (double)(totalMem - availableMem) / 1024.0;
+        out = "Memory Usage: " + std::to_string(usedMB) + " MB Used (" + std::to_string(usedPercent) + "%)";
     } else {
         out = "Memory Usage: Unknown";
     }

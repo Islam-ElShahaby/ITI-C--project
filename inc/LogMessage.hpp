@@ -3,8 +3,7 @@
 #include <ctime>
 #include <string>
 #include <iostream>
-
-enum class LogSeverity { INFO, WARNING, ERROR };
+#include "LogTypes.hpp"
 
 struct LogMessage 
 {

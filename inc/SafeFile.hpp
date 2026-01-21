@@ -15,7 +15,6 @@ public:
     SafeFile(SafeFile&& other);
     SafeFile& operator=(SafeFile&& other);
 
-    // Delete Copy (Rule of 5)
     SafeFile(const SafeFile&) = delete;
     SafeFile& operator=(const SafeFile&) = delete;
 

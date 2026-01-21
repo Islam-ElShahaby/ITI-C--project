@@ -11,8 +11,7 @@ public:
 
     SafeSocket(SafeSocket&& other);
     SafeSocket& operator=(SafeSocket&& other);
-
-    // Delete Copy (Rule of 5)
+    
     SafeSocket(const SafeSocket&) = delete;
     SafeSocket& operator=(const SafeSocket&) = delete;
 

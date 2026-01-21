@@ -1,5 +1,6 @@
 #pragma once
 #include "ILogSink.hpp"
+#include "LogTypes.hpp"
 #include <string>
 #include <string>
 
@@ -32,4 +33,23 @@ private:
 public:
     SocketSinkImpl(const std::string& path);
     void write(const LogMessage& msg) override;
+};
+
+class LogSinkFactory
+{
+public:
+    static std::unique_ptr<ILogSink> createSink(LogSinkType type, const std::string& path = "")
+    {
+        switch (type)
+        {
+        case LogSinkType::Console:
+            return std::make_unique<ConsoleSinkImpl>();
+        case LogSinkType::File:
+            return std::make_unique<FileSinkImpl>(path.empty() ? "default.log" : path);
+        case LogSinkType::Socket:
+            return std::make_unique<SocketSinkImpl>(path.empty() ? "/tmp/default_socket" : path);
+        default:
+            return nullptr;
+        }
+    }
 };

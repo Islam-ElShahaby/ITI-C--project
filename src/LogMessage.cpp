@@ -1,15 +1,5 @@
 #include "LogMessage.hpp"
-
-std::string severityToString(LogSeverity severity)
-{
-    switch (severity)
-    {
-        case LogSeverity::INFO: return "INFO";
-        case LogSeverity::WARNING: return "WARNING";
-        case LogSeverity::ERROR: return "ERROR";
-        default: return "UNKNOWN";
-    }
-}
+#include <magic_enum/magic_enum.hpp>
 
 LogMessage::LogMessage(const std::string& app, const std::string& ctx, 
                        const std::string& txt, LogSeverity sev)
@@ -26,7 +16,7 @@ std::ostream& operator<<(std::ostream& os, const LogMessage& msg) {
 
     os << "[" << timeStr << "] "
        << "[" << msg.appName << "::" << msg.context << "] "
-       << "[" << severityToString(msg.severity) << "] "
+       << "[" << magic_enum::enum_name(msg.severity) << "] "
        << msg.text;
     return os;
-}
+}   
