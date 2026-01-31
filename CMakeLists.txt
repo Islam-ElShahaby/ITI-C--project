@@ -28,6 +28,7 @@ set(SOURCES
     src/TelemetrySources.cpp
     src/SafeFile.cpp
     src/SafeSocket.cpp
+    src/ThreadPool.cpp
 )   
 
 set(HEADERS
@@ -39,6 +40,7 @@ set(HEADERS
     inc/LogTypes.hpp
     inc/Policys.hpp
     inc/RingBuffer.hpp
+    inc/ThreadPool.hpp
 )
 
 # 5. Create the Executable
@@ -46,4 +48,7 @@ add_executable(LoggerApp ${SOURCES} ${HEADERS})
 
 # 6. Include Directories
 target_include_directories(LoggerApp PRIVATE inc)
-target_link_libraries(LoggerApp PRIVATE magic_enum::magic_enum)
+
+# 7. Link Libraries
+find_package(Threads REQUIRED)
+target_link_libraries(LoggerApp PRIVATE magic_enum::magic_enum Threads::Threads)

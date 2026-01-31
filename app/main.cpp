@@ -2,10 +2,12 @@
 #include "LogSinks.hpp"
 #include "LogMessage.hpp"
 #include "TelemetrySources.hpp"
+#include "ThreadPool.hpp"
 
 #include "LogFormatter.hpp"
 #include "Policys.hpp"
 #include <regex>
+#include <chrono>
 
 
 std::string extractValue(const std::string& text) {
@@ -18,8 +20,10 @@ std::string extractValue(const std::string& text) {
 }
 
 int main() {
+    auto pool = std::make_shared<ThreadPool>(4);
+
     // Use Builder to create LogManager
-    LogManagerBuilder builder;
+    LogManagerBuilder builder(pool);
     
     // Use Factory to create Sinks
     auto consoleSink = LogSinkFactory::createSink(LogSinkType::Console);
@@ -31,7 +35,7 @@ int main() {
     
     auto logger = builder.build();
 
-    logger->log(LogMessage("Core", "Main", "System Started with Factory and Builder", LogSeverity::INFO));
+    logger->log(LogMessage("Core", "Main", "System Started - Async Logging Demo", LogSeverity::INFO));
 
     CpuTelemetrySource cpuSource;
     MemoryTelemetrySource memSource;
@@ -40,35 +44,53 @@ int main() {
     LogFormatter<CpuPolicy> cpuFormatter;
     LogFormatter<RamPolicy> ramFormatter;
 
-    if (cpuSource.openSource()) {
-        std::string cpuData;
-        if (cpuSource.readSource(cpuData)) {
-            // Use Formatter to create LogMessage
-            auto msgOpt = cpuFormatter.formatDataToLogMsg(extractValue(cpuData));
-            if (msgOpt) {
-                logger->log(*msgOpt);
-            } else {
-                logger->log(LogMessage("Telemetry", "CPU", "Failed to format data: " + cpuData, LogSeverity::ERROR));
+    // Use ThreadPool to process telemetry concurrently
+    auto cpuFuture = pool->enqueue([&]() {
+        if (cpuSource.openSource()) {
+            std::string cpuData;
+            if (cpuSource.readSource(cpuData)) {
+                auto msgOpt = cpuFormatter.formatDataToLogMsg(extractValue(cpuData));
+                if (msgOpt) {
+                    logger->log(*msgOpt);
+                } else {
+                    logger->log(LogMessage("Telemetry", "CPU", "Failed to format data: " + cpuData, LogSeverity::ERROR));
+                }
             }
+        } else {
+            logger->log(LogMessage("Telemetry", "CPU", "Failed to open CPU source", LogSeverity::ERROR));
         }
-    } else {
-        logger->log(LogMessage("Telemetry", "CPU", "Failed to open CPU source", LogSeverity::ERROR));
+    });
+
+    auto memFuture = pool->enqueue([&]() {
+        if (memSource.openSource()) {
+            std::string memData;
+            if (memSource.readSource(memData)) {
+                auto msgOpt = ramFormatter.formatDataToLogMsg(extractValue(memData));
+                if (msgOpt) {
+                    logger->log(*msgOpt);
+                } else {
+                    logger->log(LogMessage("Telemetry", "Memory", "Failed to format data: " + memData, LogSeverity::ERROR));
+                }
+            }
+        } else {
+            logger->log(LogMessage("Telemetry", "Memory", "Failed to open Memory source", LogSeverity::ERROR));
+        }
+    });
+
+    // Demo: Concurrent logging from main thread
+    for (int i = 0; i < 5; ++i) {
+        logger->log(LogMessage("Demo", "Main", "Async log message #" + std::to_string(i + 1), LogSeverity::INFO));
     }
 
-    if (memSource.openSource()) {
-        std::string memData;
-        if (memSource.readSource(memData)) {
-            // Use Formatter to create LogMessage
-            auto msgOpt = ramFormatter.formatDataToLogMsg(extractValue(memData));
-            if (msgOpt) {
-                logger->log(*msgOpt);
-            } else {
-                logger->log(LogMessage("Telemetry", "Memory", "Failed to format data: " + memData, LogSeverity::ERROR));
-            }
-        }
-    } else {
-        logger->log(LogMessage("Telemetry", "Memory", "Failed to open Memory source", LogSeverity::ERROR));
-    }
+    // Wait for telemetry tasks to complete
+    cpuFuture.get();
+    memFuture.get();
+
+    logger->log(LogMessage("Core", "Main", "All tasks completed - Shutting down", LogSeverity::INFO));
+
+    // Graceful shutdown
+    logger->shutdown();
+    pool->shutdown();
 
     return 0;
 }

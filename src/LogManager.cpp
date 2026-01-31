@@ -1,6 +1,68 @@
 #include "LogManager.hpp"
 #include "ILogSink.hpp"
 
+LogManager::LogManager(std::shared_ptr<ThreadPool> pool, size_t bufferSize) 
+    : messageBuffer(bufferSize), sinks(), m_threadPool(std::move(pool)), running(true)
+{
+    workerThread = std::thread(&LogManager::processLogs, this);
+}
+
+LogManager::~LogManager()
+{
+    shutdown();
+}
+
+void LogManager::shutdown()
+{
+    bool expected = true;
+    if (running.compare_exchange_strong(expected, false)) {
+        messageBuffer.notifyAll();
+        
+        if (workerThread.joinable()) {
+            workerThread.join();
+        }
+    }
+}
+
+void LogManager::processLogs()
+{
+    while (running.load() || !messageBuffer.isEmpty()) 
+    {
+        auto msgOpt = messageBuffer.waitAndPop([this]() { 
+            return !running.load(); 
+        });
+
+        if (msgOpt.has_value()) 
+        {
+            const LogMessage& msg = msgOpt.value();
+            if (m_threadPool) 
+            {
+                std::vector<std::future<void>> futures;
+                futures.reserve(sinks.size());
+
+                for (auto& sink : sinks) 
+                {
+                    ILogSink* sinkPtr = sink.get();
+                    futures.push_back(m_threadPool->enqueue([sinkPtr, &msg]() {
+                        sinkPtr->write(msg);
+                    }));
+                }
+
+                for(auto& f : futures) {
+                   f.get();
+                }
+            } 
+            else 
+            {
+                for (auto& sink : sinks) 
+                {
+                    sink->write(msg);
+                }
+            }
+        }
+    }
+}
+
 void LogManager::addSink(std::unique_ptr<ILogSink> sink) 
 {
     sinks.push_back(std::move(sink));
@@ -10,14 +72,16 @@ void LogManager::log(const LogMessage& msg)
 {
     LogMessage copy = msg;
     messageBuffer.tryPush(std::move(copy));
-
-    for (auto& sink : sinks) 
-    {
-        sink->write(msg);
-    }
 }
 
-LogManagerBuilder::LogManagerBuilder() : m_manager(std::make_unique<LogManager>()) {}
+void LogManager::log(LogMessage&& msg)
+{
+    messageBuffer.tryPush(std::move(msg));
+}
+
+LogManagerBuilder::LogManagerBuilder(std::shared_ptr<ThreadPool> pool) 
+    : m_manager(std::make_unique<LogManager>(pool)), m_pool(pool) 
+{}
 
 LogManagerBuilder& LogManagerBuilder::addSink(std::unique_ptr<ILogSink> sink)
 {
