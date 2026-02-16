@@ -1,0 +1,34 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+# ── CommonAPI Core ──────────────────────────────────────────────
+cc_library(
+    name = "commonapi",
+    hdrs = glob(["stub_commonapi/**"], allow_empty = True),  # placeholder, headers come from system
+    includes = [],
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lCommonAPI",
+    ],
+    deps = [],
+)
+
+# ── CommonAPI SomeIP Binding ────────────────────────────────────
+cc_library(
+    name = "commonapi_someip",
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lCommonAPI-SomeIP",
+    ],
+    deps = [":commonapi"],
+)
+
+# ── vSOME/IP ────────────────────────────────────────────────────
+cc_library(
+    name = "vsomeip3",
+    linkopts = [
+        "-L/usr/local/lib",
+        "-lvsomeip3",
+    ],
+)

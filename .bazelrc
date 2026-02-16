@@ -1,0 +1,10 @@
+# C++17 standard
+build --cxxopt=-std=c++17
+
+# System include paths for CommonAPI and vSOME/IP
+build --cxxopt=-isystem/usr/local/include
+build --cxxopt=-isystem/usr/local/include/CommonAPI-3.2
+
+# Linker flags
+build --linkopt=-L/usr/local/lib
+build --linkopt=-lpthread

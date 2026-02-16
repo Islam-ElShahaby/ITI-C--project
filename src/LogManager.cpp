@@ -24,6 +24,10 @@ void LogManager::shutdown()
     }
 }
 
+void LogManager::configureRouting(const std::string& component, const std::vector<std::string>& sinkNames) {
+    m_routingTable[component] = sinkNames;
+}
+
 void LogManager::processLogs()
 {
     while (running.load() || !messageBuffer.isEmpty()) 
@@ -35,6 +39,11 @@ void LogManager::processLogs()
         if (msgOpt.has_value()) 
         {
             const LogMessage& msg = msgOpt.value();
+            
+            // Check routing
+            bool hasRouting = m_routingTable.find(msg.appName) != m_routingTable.end();
+            const auto& targetSinks = m_routingTable[msg.appName];
+            
             if (m_threadPool) 
             {
                 std::vector<std::future<void>> futures;
@@ -43,9 +52,24 @@ void LogManager::processLogs()
                 for (auto& sink : sinks) 
                 {
                     ILogSink* sinkPtr = sink.get();
-                    futures.push_back(m_threadPool->enqueue([sinkPtr, &msg]() {
-                        sinkPtr->write(msg);
-                    }));
+                    
+                    // Routing check
+                    bool shouldLog = true;
+                    if (hasRouting) {
+                        shouldLog = false;
+                        for (const auto& name : targetSinks) {
+                            if (name == sinkPtr->getName()) {
+                                shouldLog = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (shouldLog) {
+                        futures.push_back(m_threadPool->enqueue([sinkPtr, &msg]() {
+                            sinkPtr->write(msg);
+                        }));
+                    }
                 }
 
                 for(auto& f : futures) {
@@ -56,7 +80,21 @@ void LogManager::processLogs()
             {
                 for (auto& sink : sinks) 
                 {
-                    sink->write(msg);
+                    // Routing check
+                    bool shouldLog = true;
+                    if (hasRouting) {
+                        shouldLog = false;
+                        for (const auto& name : targetSinks) {
+                            if (name == sink->getName()) {
+                                shouldLog = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (shouldLog) {
+                        sink->write(msg);
+                    }
                 }
             }
         }

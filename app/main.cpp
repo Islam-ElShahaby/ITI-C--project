@@ -1,96 +1,34 @@
-#include "LogManager.hpp"
-#include "LogSinks.hpp"
-#include "LogMessage.hpp"
-#include "TelemetrySources.hpp"
-#include "ThreadPool.hpp"
+#include "Application.hpp"
+#include <iostream>
+#include <csignal>
+#include <atomic>
 
-#include "LogFormatter.hpp"
-#include "Policys.hpp"
-#include <regex>
-#include <chrono>
+// Global pointer for signal handling
+Application* g_app = nullptr;
 
-
-std::string extractValue(const std::string& text) {
-    std::regex valRegex(R"([0-9]*\.?[0-9]+)"); 
-    std::smatch match;
-    if (std::regex_search(text, match, valRegex)) {
-        return match.str();
+void signalHandler(int signal) {
+    std::cout << "\n[Main] Received signal " << signal << ", shutting down..." << std::endl;
+    if (g_app) {
+        g_app->stop();
     }
-    return text;
 }
 
 int main() {
-    auto pool = std::make_shared<ThreadPool>(4);
+    // Set up signal handler for graceful shutdown
+    std::signal(SIGINT, signalHandler);
+    std::signal(SIGTERM, signalHandler);
 
-    // Use Builder to create LogManager
-    LogManagerBuilder builder(pool);
-    
-    // Use Factory to create Sinks
-    auto consoleSink = LogSinkFactory::createSink(LogSinkType::Console);
-    auto fileSink = LogSinkFactory::createSink(LogSinkType::File, "app_log.txt");
-    
-    // Add sinks to builder
-    if (consoleSink) builder.addSink(std::move(consoleSink));
-    if (fileSink)    builder.addSink(std::move(fileSink));
-    
-    auto logger = builder.build();
+    try {
+        Application app("config/app_config.json");
+        g_app = &app;
+        
+        app.start();
 
-    logger->log(LogMessage("Core", "Main", "System Started - Async Logging Demo", LogSeverity::INFO));
-
-    CpuTelemetrySource cpuSource;
-    MemoryTelemetrySource memSource;
-    
-    // Formatters
-    LogFormatter<CpuPolicy> cpuFormatter;
-    LogFormatter<RamPolicy> ramFormatter;
-
-    // Use ThreadPool to process telemetry concurrently
-    auto cpuFuture = pool->enqueue([&]() {
-        if (cpuSource.openSource()) {
-            std::string cpuData;
-            if (cpuSource.readSource(cpuData)) {
-                auto msgOpt = cpuFormatter.formatDataToLogMsg(extractValue(cpuData));
-                if (msgOpt) {
-                    logger->log(*msgOpt);
-                } else {
-                    logger->log(LogMessage("Telemetry", "CPU", "Failed to format data: " + cpuData, LogSeverity::ERROR));
-                }
-            }
-        } else {
-            logger->log(LogMessage("Telemetry", "CPU", "Failed to open CPU source", LogSeverity::ERROR));
-        }
-    });
-
-    auto memFuture = pool->enqueue([&]() {
-        if (memSource.openSource()) {
-            std::string memData;
-            if (memSource.readSource(memData)) {
-                auto msgOpt = ramFormatter.formatDataToLogMsg(extractValue(memData));
-                if (msgOpt) {
-                    logger->log(*msgOpt);
-                } else {
-                    logger->log(LogMessage("Telemetry", "Memory", "Failed to format data: " + memData, LogSeverity::ERROR));
-                }
-            }
-        } else {
-            logger->log(LogMessage("Telemetry", "Memory", "Failed to open Memory source", LogSeverity::ERROR));
-        }
-    });
-
-    // Demo: Concurrent logging from main thread
-    for (int i = 0; i < 5; ++i) {
-        logger->log(LogMessage("Demo", "Main", "Async log message #" + std::to_string(i + 1), LogSeverity::INFO));
+    } catch (const std::exception& e) {
+        std::cerr << "Application Error: " << e.what() << std::endl;
+        return 1;
     }
 
-    // Wait for telemetry tasks to complete
-    cpuFuture.get();
-    memFuture.get();
-
-    logger->log(LogMessage("Core", "Main", "All tasks completed - Shutting down", LogSeverity::INFO));
-
-    // Graceful shutdown
-    logger->shutdown();
-    pool->shutdown();
-
+    std::cout << "[Main] Shutdown complete" << std::endl;
     return 0;
 }

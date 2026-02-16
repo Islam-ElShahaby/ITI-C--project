@@ -1,4 +1,6 @@
 build/
 .vscode/
 .cache/
+external_libs/
 app_log.txt
+bazel-*

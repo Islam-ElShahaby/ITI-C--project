@@ -5,6 +5,9 @@
 #include <thread>
 #include <atomic>
 #include "ThreadPool.hpp"
+#include <map>
+#include <vector>
+#include <string>
 
 class ILogSink; 
 
@@ -17,6 +20,10 @@ private:
     // Threading members
     std::thread workerThread;
     std::atomic<bool> running{true};
+
+    // Routing table: Component Name -> List of Sink Names
+    // If a component is not in the map, it goes to all sinks (default behavior)
+    std::map<std::string, std::vector<std::string>> m_routingTable;
 
     // Worker thread function
     void processLogs();
@@ -32,6 +39,7 @@ public:
     LogManager& operator=(LogManager&&) = delete;
 
     void addSink(std::unique_ptr<ILogSink> sink);
+    void configureRouting(const std::string& component, const std::vector<std::string>& sinkNames);
     void log(const LogMessage& msg);
     void log(LogMessage&& msg);
     

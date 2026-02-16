@@ -8,6 +8,7 @@ class ConsoleSinkImpl : public ILogSink
 {
 public:
     void write(const LogMessage& msg) override;
+    std::string getName() const override { return "console"; }
 };
 
 #include "SafeFile.hpp"
@@ -23,6 +24,7 @@ private:
 public:
     FileSinkImpl(const std::string& path);
     void write(const LogMessage& msg) override;
+    std::string getName() const override { return "file"; }
 };
 
 class SocketSinkImpl : public ILogSink
@@ -33,6 +35,7 @@ private:
 public:
     SocketSinkImpl(const std::string& path);
     void write(const LogMessage& msg) override;
+    std::string getName() const override { return "socket"; }
 };
 
 class LogSinkFactory

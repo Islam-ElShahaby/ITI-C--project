@@ -1,0 +1,113 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+# ── Header-Only External Libraries ──────────────────────────────
+
+cc_library(
+    name = "magic_enum",
+    hdrs = glob(["external_libs/magic_enum/*.hpp"]),
+    includes = ["external_libs/magic_enum"],
+)
+
+cc_library(
+    name = "nlohmann_json",
+    hdrs = glob(["external_libs/nlohmann/**/*.hpp"]),
+    includes = ["external_libs"],
+)
+
+# ── CommonAPI Generated Sources ─────────────────────────────────
+
+cc_library(
+    name = "commonapi_gen",
+    srcs = [
+        "src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPDeployment.cpp",
+        "src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPProxy.cpp",
+        "src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPStubAdapter.cpp",
+    ],
+    hdrs = glob(["src-gen/**/*.hpp"]),
+    includes = ["src-gen"],
+    deps = [
+        "//third_party:commonapi",
+        "//third_party:commonapi_someip",
+        "//third_party:vsomeip3",
+    ],
+)
+
+# ── Common Headers ──────────────────────────────────────────────
+
+cc_library(
+    name = "project_headers",
+    hdrs = glob(["inc/**/*.hpp"]),
+    includes = ["inc"],
+    visibility = ["//visibility:public"],
+)
+
+# ── LoggerBase Static Library ───────────────────────────────────
+
+cc_library(
+    name = "logger_base",
+    srcs = [
+        "src/Application.cpp",
+        "src/LogManager.cpp",
+        "src/LogMessage.cpp",
+        "src/LogSinks.cpp",
+        "src/SafeFile.cpp",
+        "src/SafeSocket.cpp",
+        "src/TelemetrySources.cpp",
+        "src/ThreadPool.cpp",
+    ],
+    deps = [
+        ":project_headers",
+        ":magic_enum",
+        ":nlohmann_json",
+        ":commonapi_gen",
+        "//third_party:commonapi",
+        "//third_party:commonapi_someip",
+        "//third_party:vsomeip3",
+    ],
+)
+
+# ── LoggerApp (Client) Executable ───────────────────────────────
+
+cc_binary(
+    name = "LoggerApp",
+    srcs = [
+        "app/main.cpp",
+        "src/SomeIPTelemetrySource.cpp",
+    ],
+    includes = [
+        "src-gen",
+    ],
+    deps = [
+        ":logger_base",
+        ":project_headers",
+        ":commonapi_gen",
+        ":magic_enum",
+        ":nlohmann_json",
+        "//third_party:commonapi",
+        "//third_party:commonapi_someip",
+        "//third_party:vsomeip3",
+    ],
+)
+
+# ── GpuService Executable ──────────────────────────────────────
+
+cc_binary(
+    name = "GpuService",
+    srcs = [
+        "app/service_main.cpp",
+        "src/GpuUsageService.cpp",
+    ],
+    includes = [
+        "src-gen",
+    ],
+    deps = [
+        ":project_headers",
+        ":commonapi_gen",
+        ":magic_enum",
+        "//third_party:commonapi",
+        "//third_party:commonapi_someip",
+        "//third_party:vsomeip3",
+    ],
+)

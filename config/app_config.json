@@ -1,0 +1,38 @@
+{
+    "telemetry": {
+        "cpu": {
+            "enabled": true,
+            "interval": 1000,
+            "sinks": [
+                "console",
+                "file"
+            ]
+        },
+        "memory": {
+            "enabled": true,
+            "interval": 5000,
+            "sinks": [
+                "file"
+            ]
+        },
+        "gpu": {
+            "enabled": false,
+            "interval": 2000,
+            "sinks": [
+                "console"
+            ]
+        }
+    },
+    "sinks": {
+        "console": {
+            "enabled": true
+        },
+        "file": {
+            "enabled": true,
+            "path": "app_log.txt"
+        }
+    },
+    "general": {
+        "global_interval": 1000
+    }
+}
