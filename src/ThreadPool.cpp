@@ -1,6 +1,6 @@
 #include "ThreadPool.hpp"
 
-/* create the specified number of worker threads */
+// Spawns the requested number of worker threads (defaults to 1 if 0 is passed in)
 ThreadPool::ThreadPool(size_t numThreads)
 {
     if (numThreads == 0) {
@@ -15,13 +15,13 @@ ThreadPool::ThreadPool(size_t numThreads)
     }
 }
 
-/* stop all threads and waits for completion */
+// Ensures a clean shutdown when the object goes out of scope
 ThreadPool::~ThreadPool()
 {
     shutdown();
 }
 
-// Simple enqueue without future (fire-and-forget)
+// Submits a task without caring about the result — useful for fire-and-forget work
 void ThreadPool::enqueueTask(std::function<void()> task)
 {
     {
@@ -37,7 +37,7 @@ void ThreadPool::enqueueTask(std::function<void()> task)
     condition.notify_one();
 }
 
-/* Gracefully stop all the threads in the threadpool */
+// Sets the stop flag and waits for every worker thread to finish its current task
 void ThreadPool::shutdown()
 {
     bool expected = false;

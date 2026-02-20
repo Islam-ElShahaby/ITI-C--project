@@ -3,7 +3,6 @@
 #include <csignal>
 #include <atomic>
 
-// Global pointer for signal handling
 Application* g_app = nullptr;
 
 void signalHandler(int signal) {
@@ -14,7 +13,6 @@ void signalHandler(int signal) {
 }
 
 int main() {
-    // Set up signal handler for graceful shutdown
     std::signal(SIGINT, signalHandler);
     std::signal(SIGTERM, signalHandler);
 

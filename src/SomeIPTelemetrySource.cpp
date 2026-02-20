@@ -7,13 +7,11 @@
 
 namespace telemetry {
 
-// Static member initialization
+// Static members — these must be defined here so the linker can find them
 std::unique_ptr<SomeIPTelemetrySourceImpl, SomeIPTelemetrySourceImpl::Deleter> SomeIPTelemetrySourceImpl::s_instance = nullptr;
 std::once_flag SomeIPTelemetrySourceImpl::s_onceFlag;
 
-// ============================================================================
-// SomeIPTelemetrySourceImpl Implementation (Singleton)
-// ============================================================================
+// --- SomeIPTelemetrySourceImpl (Singleton) ---
 
 SomeIPTelemetrySourceImpl& SomeIPTelemetrySourceImpl::getInstance() {
     std::call_once(s_onceFlag, []() {
@@ -42,15 +40,14 @@ bool SomeIPTelemetrySourceImpl::initialize() {
     }
 
     try {
-        // Get CommonAPI runtime instance
+        // Load the CommonAPI runtime, which bootstraps the SOME/IP middleware
         m_runtime = CommonAPI::Runtime::get();
         if (!m_runtime) {
             std::cerr << "[SomeIPTelemetry] Failed to get CommonAPI runtime" << std::endl;
             return false;
         }
 
-        // Build the proxy for GpuUsageData service
-        // Domain: "local", Instance: "omnimetron.gpu.GpuUsageData"
+        // Build the generated proxy for the GpuUsageData service
         m_proxy = m_runtime->buildProxy<v1::omnimetron::gpu::GpuUsageDataProxy>(
             "local",
             "omnimetron.gpu.GpuUsageData"
@@ -87,12 +84,12 @@ bool SomeIPTelemetrySourceImpl::waitForAvailability(uint32_t timeoutMs) {
         return false;
     }
 
-    // Check if already available
+    // Quick path: no need to poll if the service is already up
     if (m_proxy->isAvailable()) {
         return true;
     }
 
-    // Wait with timeout
+    // Poll in 100ms increments until the service appears or we hit the timeout
     auto startTime = std::chrono::steady_clock::now();
     uint32_t elapsedMs = 0;
 
@@ -125,7 +122,7 @@ bool SomeIPTelemetrySourceImpl::requestGpuUsage(float& usage) {
         CommonAPI::CallStatus callStatus;
         float receivedUsage = 0.0f;
 
-        // Synchronous method call
+        // Block until the reply comes back from the service
         m_proxy->requestGpuUsageData(callStatus, receivedUsage);
 
         if (callStatus == CommonAPI::CallStatus::SUCCESS) {
@@ -154,7 +151,7 @@ void SomeIPTelemetrySourceImpl::requestGpuUsageAsync(std::function<void(bool suc
     }
 
     try {
-        // Asynchronous method call
+        // Fire the request and let CommonAPI call our lambda when the reply arrives
         m_proxy->requestGpuUsageDataAsync(
             [callback](const CommonAPI::CallStatus& status, const float& usage) {
                 if (callback) {
@@ -179,12 +176,12 @@ void SomeIPTelemetrySourceImpl::subscribeToEvents(std::function<void(float usage
     }
 
     if (m_subscribed) {
-        // Already subscribed, unsubscribe first
+        // Clean up the old subscription before registering a new one
         unsubscribeFromEvents();
     }
 
     try {
-        // Subscribe to the notifyGpuUsageDataChange broadcast event
+        // Hook into the broadcast event that the service fires whenever the GPU usage changes
         m_eventSubscription = m_proxy->getNotifyGpuUsageDataChangeEvent().subscribe(
             [handler](const float& usage) {
                 if (handler) {
@@ -228,9 +225,7 @@ void SomeIPTelemetrySourceImpl::shutdown() {
     std::cout << "[SomeIPTelemetry] Client shutdown complete" << std::endl;
 }
 
-// ============================================================================
-// SomeIPTelemetrySourceAdapter Implementation (Adapter Pattern)
-// ============================================================================
+// --- SomeIPTelemetrySourceAdapter (Adapter) ---
 
 SomeIPTelemetrySourceAdapter::SomeIPTelemetrySourceAdapter(bool useEvents)
     : m_impl(SomeIPTelemetrySourceImpl::getInstance())
@@ -241,7 +236,7 @@ SomeIPTelemetrySourceAdapter::SomeIPTelemetrySourceAdapter(bool useEvents)
 }
 
 bool SomeIPTelemetrySourceAdapter::openSource() {
-    // Initialize and wait for the service to become available
+    // Start the singleton and wait until the GPU service is reachable
     if (!m_impl.initialize()) {
         return false;
     }
@@ -250,7 +245,7 @@ bool SomeIPTelemetrySourceAdapter::openSource() {
         return false;
     }
 
-    // If using events, subscribe to the broadcast
+    // If using event mode, register a listener that stores the latest value for us
     if (m_useEvents) {
         m_impl.subscribeToEvents([this](float usage) {
             std::lock_guard<std::mutex> lock(m_eventMutex);
@@ -267,24 +262,28 @@ bool SomeIPTelemetrySourceAdapter::readSource(std::string& out) {
     bool success = false;
 
     if (m_useEvents) {
-        // Use the last received event value
+        // Return whatever the last broadcast event delivered
         std::lock_guard<std::mutex> lock(m_eventMutex);
         if (m_eventReceived) {
             usage = m_lastEventValue;
             success = true;
         } else {
-            // No event received yet, fall back to request
+            // No event has come in yet, so fall back to a direct request
             success = m_impl.requestGpuUsage(usage);
         }
     } else {
-        // Use synchronous request/response
+        // Poll the service directly via request/response
         success = m_impl.requestGpuUsage(usage);
     }
 
     if (success) {
-        std::ostringstream oss;
-        oss << "GPU Load: " << std::fixed << std::setprecision(1) << usage << "%";
-        out = oss.str();
+        if (usage < 0.0f) {
+            out = "GPU Load: Unavailable";
+        } else {
+            std::ostringstream oss;
+            oss << "GPU Load: " << std::fixed << std::setprecision(1) << usage << "%";
+            out = oss.str();
+        }
         return true;
     }
 

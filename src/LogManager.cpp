@@ -40,7 +40,7 @@ void LogManager::processLogs()
         {
             const LogMessage& msg = msgOpt.value();
             
-            // Check routing
+            // Check if this component has a specific routing rule
             bool hasRouting = m_routingTable.find(msg.appName) != m_routingTable.end();
             const auto& targetSinks = m_routingTable[msg.appName];
             
@@ -53,7 +53,7 @@ void LogManager::processLogs()
                 {
                     ILogSink* sinkPtr = sink.get();
                     
-                    // Routing check
+                    // If a routing rule exists, only write to the sinks that are explicitly listed
                     bool shouldLog = true;
                     if (hasRouting) {
                         shouldLog = false;
@@ -80,7 +80,6 @@ void LogManager::processLogs()
             {
                 for (auto& sink : sinks) 
                 {
-                    // Routing check
                     bool shouldLog = true;
                     if (hasRouting) {
                         shouldLog = false;

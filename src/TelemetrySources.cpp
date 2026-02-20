@@ -14,6 +14,8 @@ FileTelemetrySourceImpl::FileTelemetrySourceImpl(const std::string& path, size_t
 
 bool FileTelemetrySourceImpl::openSource()
 {
+    if (m_file) return true; // File is already open
+
     try {
         m_file = std::make_unique<SafeFile>(m_path, O_RDONLY);
         return true;
@@ -26,9 +28,10 @@ bool FileTelemetrySourceImpl::openSource()
 
 bool FileTelemetrySourceImpl::readSource(std::string& out)
 {
-    if (!m_file) return false;
+    if (!m_file && !openSource()) return false;
 
     try {
+        m_file->rewind();
         m_file->read(out, m_bufferSize);
         return true;
     }
@@ -64,14 +67,29 @@ bool SocketTelemetrySourceImpl::readSource(std::string& out)
     }
 }
 
-// CpuTelemetrySource
 CpuTelemetrySource::CpuTelemetrySource() 
     : m_fileSource("/proc/stat", 1024)
 {
 }
 
 bool CpuTelemetrySource::openSource() {
-    return m_fileSource.openSource();
+    if (!m_fileSource.openSource()) return false;
+    
+    // Seed initial values to establish an accurate baseline if not already established
+    if (m_prevTotal == 0 && m_prevIdle == 0) {
+        std::string content;
+        if (m_fileSource.readSource(content)) {
+            std::stringstream ss(content);
+            std::string cpuLabel;
+            long user, nice, system, idle, iowait, irq, softirq, steal;
+            if (ss >> cpuLabel >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal) {
+                m_prevTotal = user + nice + system + idle + iowait + irq + softirq + steal;
+                m_prevIdle = idle + iowait;
+            }
+        }
+    }
+
+    return true;
 }
 
 bool CpuTelemetrySource::readSource(std::string& out) {
@@ -103,7 +121,6 @@ bool CpuTelemetrySource::readSource(std::string& out) {
     return true;
 }
 
-// MemoryTelemetrySource
 MemoryTelemetrySource::MemoryTelemetrySource() 
     : m_fileSource("/proc/meminfo", 2048)
 {

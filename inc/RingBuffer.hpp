@@ -23,11 +23,11 @@ public:
         m_buffer.resize(capacity);
     }
 
-    // Delete copy semantics
+    // Copying a ring buffer would create two owners of the same data with shared state, so we disallow it
     RingBuffer(const RingBuffer&) = delete;
     RingBuffer& operator=(const RingBuffer&) = delete;
 
-    // Move constructor
+    // Moving locks the source to safely transfer state, then resets the source to empty
     RingBuffer(RingBuffer&& other) noexcept
     {
         std::lock_guard<std::mutex> lock(other.m_mutex);
@@ -41,7 +41,7 @@ public:
         other.m_size = 0;
     }
 
-    // Move assignment
+    // Move assignment — same idea as the move constructor, but handles self-assignment too
     RingBuffer& operator=(RingBuffer&& other) noexcept
     {
         if (this != &other)
@@ -59,7 +59,7 @@ public:
         return *this;
     }
 
-    // Non-blocking push - returns false if buffer is full
+    // Tries to push an item into the buffer. Returns false immediately if the buffer is full.
     bool tryPush(T&& item)
     {
         {
@@ -78,14 +78,14 @@ public:
         return true;
     }
 
-    // Non-blocking push with lvalue
+    // Convenience overload that accepts a const reference by making an internal copy before pushing
     bool tryPush(const T& item)
     {
         T copy = item;
         return tryPush(std::move(copy));
     }
 
-    // Non-blocking pop - returns nullopt if buffer is empty
+    // Tries to pop an item from the buffer. Returns an empty optional immediately if the buffer is empty.
     std::optional<T> tryPop()
     {
         std::optional<T> item;
@@ -106,7 +106,7 @@ public:
         return item;
     }
 
-    // Blocking pop with timeout support for shutdown
+    // Blocks until an item is available or the provided stop condition returns true (used for clean shutdown)
     template<typename Predicate>
     std::optional<T> waitAndPop(Predicate shouldStop)
     {
@@ -132,28 +132,28 @@ public:
         return item;
     }
 
-    // Wake up any waiting consumers (used during shutdown)
+    // Wakes up any threads blocked in waitAndPop so they can check the stop condition and exit
     void notifyAll()
     {
         m_notEmpty.notify_all();
         m_notFull.notify_all();
     }
 
-    // Thread-safe size query
+    // Returns the number of items currently in the buffer (thread-safe)
     size_t size() const
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_size;
     }
 
-    // Thread-safe empty check
+    // Returns true if the buffer currently holds no items (thread-safe)
     bool isEmpty() const
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_size == 0;
     }
 
-    // Thread-safe full check
+    // Returns true if the buffer has reached its capacity and cannot accept more items (thread-safe)
     bool isFull() const
     {
         std::lock_guard<std::mutex> lock(m_mutex);

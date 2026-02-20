@@ -20,4 +20,5 @@ public:
 
     void write(const std::string& data);
     void read(std::string& data, size_t size);
+    void rewind();
 };

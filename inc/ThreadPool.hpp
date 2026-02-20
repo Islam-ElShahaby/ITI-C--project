@@ -23,13 +23,13 @@ public:
     explicit ThreadPool(size_t numThreads = std::thread::hardware_concurrency());
     ~ThreadPool();
 
-    // Disable copy & move semantics
+    // The pool can't be safely copied or moved once threads are running
     ThreadPool(const ThreadPool&) = delete;
     ThreadPool& operator=(const ThreadPool&) = delete;
     ThreadPool(ThreadPool&&) = delete;
     ThreadPool& operator=(ThreadPool&&) = delete;
 
-    // Enqueue a task and return a future for the result
+    // Submits a callable to the pool and returns a future so the caller can wait for the result
     template<typename F, typename... Args>
     auto enqueue(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>>
     {
@@ -55,19 +55,19 @@ public:
         return result;
     }
 
-    // Simple enqueue without future
+    // Submits a task without caring about the return value (fire-and-forget)
     void enqueueTask(std::function<void()> task);
 
-    // Gracefully stop all the threads in the threadpool
+    // Signals all worker threads to finish their current task and then exit
     void shutdown();
 
-    // Get number of worker threads
+    // Returns how many worker threads this pool is running
     size_t size() const
     {
         return workers.size();
     }
 
-    // Check if pool is stopped
+    // Returns true if shutdown() has been called
     bool isStopped() const
     {
         return stop.load();

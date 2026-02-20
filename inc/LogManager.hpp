@@ -17,22 +17,22 @@ private:
     std::vector<std::unique_ptr<ILogSink>> sinks;
     std::shared_ptr<ThreadPool> m_threadPool;
     
-    // Threading members
+    // The background thread that drains the message buffer and dispatches to sinks
     std::thread workerThread;
     std::atomic<bool> running{true};
 
-    // Routing table: Component Name -> List of Sink Names
-    // If a component is not in the map, it goes to all sinks (default behavior)
+    // Maps component names to the specific sinks they should write to.
+    // If a component has no entry here, its messages are sent to every sink.
     std::map<std::string, std::vector<std::string>> m_routingTable;
 
-    // Worker thread function
+    // Runs on the worker thread — continuously reads from the buffer and writes to sinks
     void processLogs();
 
 public:
     explicit LogManager(std::shared_ptr<ThreadPool> pool, size_t bufferSize = 1024);
     ~LogManager();
 
-    // Disable copy & move
+    // LogManager owns the worker thread and sinks, so copying or moving it doesn't make sense
     LogManager(const LogManager&) = delete;
     LogManager& operator=(const LogManager&) = delete;
     LogManager(LogManager&&) = delete;
@@ -43,7 +43,7 @@ public:
     void log(const LogMessage& msg);
     void log(LogMessage&& msg);
     
-    // Graceful shutdown
+    // Flushes any remaining messages and stops the worker thread cleanly
     void shutdown();
 };
 

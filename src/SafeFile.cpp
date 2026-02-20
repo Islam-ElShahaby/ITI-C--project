@@ -49,3 +49,9 @@ void SafeFile::read(std::string& data, size_t size) {
     }
     data.assign(buffer.data(), bytes_read);
 }
+
+void SafeFile::rewind() {
+    if (::lseek(fd, 0, SEEK_SET) == -1) {
+        throw std::runtime_error("Failed to rewind file: " + path);
+    }
+}

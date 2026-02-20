@@ -15,7 +15,7 @@ struct TelemetryConfig {
 
 struct SinkConfig {
     bool enabled = true;
-    std::string path; // Only for file/socket sinks
+    std::string path;
 };
 
 struct GeneralConfig {
@@ -37,7 +37,6 @@ struct AppConfig {
             }
             nlohmann::json j = nlohmann::json::parse(f);
 
-            // Parse Telemetry
             if (j.contains("telemetry")) {
                 for (auto& [key, val] : j["telemetry"].items()) {
                     TelemetryConfig tc;
@@ -48,7 +47,6 @@ struct AppConfig {
                 }
             }
 
-            // Parse Sinks
             if (j.contains("sinks")) {
                 for (auto& [key, val] : j["sinks"].items()) {
                     SinkConfig sc;
@@ -58,7 +56,6 @@ struct AppConfig {
                 }
             }
 
-            // Parse General
             if (j.contains("general")) {
                 auto& g = j["general"];
                 if (g.contains("global_interval")) config.general.globalInterval = g["global_interval"];

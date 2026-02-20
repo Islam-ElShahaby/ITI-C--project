@@ -17,14 +17,14 @@ void GpuUsageService::requestGpuUsageData(
     const std::shared_ptr<CommonAPI::ClientId> _client,
     requestGpuUsageDataReply_t _reply) 
 {
-    (void)_client; // Unused parameter
+    (void)_client; // The client ID isn't used here; we reply to whoever called us
 
     float usage = getCurrentGpuUsage();
     
     std::cout << "[GpuService] Request received, returning GPU usage: " 
               << usage << "%" << std::endl;
     
-    // Send the reply back to the client
+    // Send the GPU usage value back to the client that called
     _reply(usage);
 }
 
@@ -32,7 +32,7 @@ void GpuUsageService::broadcastGpuUsage(float usage) {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_lastUsage = usage;
     
-    // Fire the broadcast event
+    // Publish the new value so any subscribed clients receive it immediately
     fireNotifyGpuUsageDataChangeEvent(usage);
     
     std::cout << "[GpuService] Broadcast sent: GPU usage = " << usage << "%" << std::endl;
@@ -43,13 +43,11 @@ float GpuUsageService::getCurrentGpuUsage() {
 }
 
 float GpuUsageService::readSystemGpuUsage() {
-    // Try to read actual GPU usage from various sources
-    
-    // 1. Try AMD/Intel DRM (Linux)
+    // Try each known sysfs path where AMD/Intel GPUs expose their usage
     std::vector<std::string> gpuPaths = {
-        "/sys/class/drm/card0/device/gpu_busy_percent",      // AMD
-        "/sys/class/drm/card1/device/gpu_busy_percent",      // AMD (secondary)
-        "/sys/kernel/debug/dri/0/i915_engine_info"           // Intel (requires parsing)
+        "/sys/class/drm/card0/device/gpu_busy_percent",      // AMD (primary GPU)
+        "/sys/class/drm/card1/device/gpu_busy_percent",      // AMD (secondary GPU)
+        "/sys/kernel/debug/dri/0/i915_engine_info"           // Intel (needs parsing)
     };
     
     for (const auto& path : gpuPaths) {
@@ -64,7 +62,7 @@ float GpuUsageService::readSystemGpuUsage() {
         }
     }
 
-    // 2. Try nvidia-smi (NVIDIA GPUs)
+    // If sysfs didn't work, try nvidia-smi for NVIDIA GPUs
     FILE* pipe = popen("nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null", "r");
     if (pipe) {
         char buffer[128];
@@ -77,18 +75,9 @@ float GpuUsageService::readSystemGpuUsage() {
         pclose(pipe);
     }
 
-    // 3. Fallback: Generate simulated GPU usage
-    // This provides a realistic-looking varying load for testing
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    static std::uniform_real_distribution<float> dist(10.0f, 80.0f);
-    
-    float baseUsage = m_lastUsage > 0 ? m_lastUsage.load() : 30.0f;
-    float variation = (dist(gen) - 45.0f) * 0.2f;  // Small variation around current value
-    float newUsage = std::max(0.0f, std::min(100.0f, baseUsage + variation));
-    
-    m_lastUsage = newUsage;
-    return newUsage;
+    // No real GPU found. Report as unavailable (-1.0f).
+    m_lastUsage = -1.0f;
+    return -1.0f;
 }
 
 } // namespace service
