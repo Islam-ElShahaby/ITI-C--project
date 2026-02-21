@@ -4,3 +4,4 @@ build/
 external_libs/
 app_log.txt
 bazel-*
+Phases
