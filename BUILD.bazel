@@ -112,3 +112,87 @@ cc_binary(
         "//third_party:vsomeip3",
     ],
 )
+
+# ── Qt App Headers ──────────────────────────────────────────────
+
+cc_library(
+    name = "qt_app_headers",
+    hdrs = glob(["qt_app/inc/**/*.hpp"]),
+    includes = ["qt_app/inc"],
+    deps = [
+        ":project_headers",
+        "//third_party:qt6_widgets",
+    ],
+)
+
+# ── Qt MOC Code Generation ──────────────────────────────────────
+# Bazel has no AUTOMOC, so we run moc manually for each Q_OBJECT header.
+
+_QT_MOC_HEADERS = [
+    "qt_app/inc/QtSinkImpl.hpp",
+    "qt_app/inc/TelemetryChartWidget.hpp",
+    "qt_app/inc/ConfigEditorWidget.hpp",
+    "qt_app/inc/LogViewerWidget.hpp",
+    "qt_app/inc/MainWindow.hpp",
+]
+
+[genrule(
+    name = "moc_" + hdr.split("/")[-1].replace(".hpp", ""),
+    srcs = [hdr],
+    outs = ["moc_" + hdr.split("/")[-1].replace(".hpp", ".cpp")],
+    cmd = "/usr/lib/qt6/libexec/moc " +
+          "-I$$(pwd)/inc " +
+          "-I$$(pwd)/qt_app/inc " +
+          "-I/usr/include/x86_64-linux-gnu/qt6 " +
+          "-I/usr/include/x86_64-linux-gnu/qt6/QtWidgets " +
+          "-I/usr/include/x86_64-linux-gnu/qt6/QtGui " +
+          "-I/usr/include/x86_64-linux-gnu/qt6/QtCore " +
+          "$(location " + hdr + ") -o $@",
+) for hdr in _QT_MOC_HEADERS]
+
+# ── LoggerQtApp (GUI) Executable ────────────────────────────────
+
+cc_binary(
+    name = "LoggerQtApp",
+    srcs = [
+        "qt_app/src/qt_main.cpp",
+        "qt_app/src/QtSinkImpl.cpp",
+        "qt_app/src/TelemetryChartWidget.cpp",
+        "qt_app/src/ConfigEditorWidget.cpp",
+        "qt_app/src/LogViewerWidget.cpp",
+        "qt_app/src/MainWindow.cpp",
+        "src/SomeIPTelemetrySource.cpp",
+        # MOC-generated files
+        ":moc_QtSinkImpl",
+        ":moc_TelemetryChartWidget",
+        ":moc_ConfigEditorWidget",
+        ":moc_LogViewerWidget",
+        ":moc_MainWindow",
+    ],
+    copts = [
+        "-isystem/usr/include/x86_64-linux-gnu/qt6",
+        "-isystem/usr/include/x86_64-linux-gnu/qt6/QtWidgets",
+        "-isystem/usr/include/x86_64-linux-gnu/qt6/QtGui",
+        "-isystem/usr/include/x86_64-linux-gnu/qt6/QtCore",
+        "-DQT_WIDGETS_LIB",
+        "-DQT_GUI_LIB",
+        "-DQT_CORE_LIB",
+        "-fPIC",
+    ],
+    includes = [
+        "qt_app/inc",
+        "src-gen",
+    ],
+    deps = [
+        ":logger_base",
+        ":qt_app_headers",
+        ":project_headers",
+        ":commonapi_gen",
+        ":magic_enum",
+        ":nlohmann_json",
+        "//third_party:commonapi",
+        "//third_party:commonapi_someip",
+        "//third_party:vsomeip3",
+        "//third_party:qt6_widgets",
+    ],
+)

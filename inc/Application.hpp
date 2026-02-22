@@ -9,6 +9,7 @@
 #include "Policys.hpp"
 #include "Config.hpp"
 #include "ThreadPool.hpp"
+#include "ILogSink.hpp"
 
 class Application {
 public:
@@ -17,6 +18,11 @@ public:
 
     void start();
     void stop();
+    
+    // Allow injecting additional sinks (e.g. the Qt GUI sink)
+    void addSink(std::unique_ptr<ILogSink> sink) {
+        if (m_logger) m_logger->addSink(std::move(sink));
+    }
 
 private:
     void setupLogging();

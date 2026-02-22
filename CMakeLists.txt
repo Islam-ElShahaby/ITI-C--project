@@ -153,3 +153,58 @@ target_link_libraries(GpuService PRIVATE
     vsomeip3
 )
 
+# ============================================================
+# 13. Qt6 GUI Application — Config Editor + Real-Time Log Viewer
+# ============================================================
+find_package(Qt6 COMPONENTS Widgets QUIET)
+if (Qt6_FOUND)
+    message(STATUS "Qt6 Widgets found — building LoggerQtApp")
+    set(CMAKE_AUTOMOC ON)
+
+    set(QT_APP_SOURCES
+        qt_app/src/qt_main.cpp
+        qt_app/src/QtSinkImpl.cpp
+        qt_app/src/TelemetryChartWidget.cpp
+        qt_app/src/ConfigEditorWidget.cpp
+        qt_app/src/LogViewerWidget.cpp
+        qt_app/src/MainWindow.cpp
+    )
+
+    set(QT_APP_HEADERS
+        qt_app/inc/QtSinkImpl.hpp
+        qt_app/inc/TelemetryChartWidget.hpp
+        qt_app/inc/ConfigEditorWidget.hpp
+        qt_app/inc/LogViewerWidget.hpp
+        qt_app/inc/MainWindow.hpp
+    )
+
+    add_executable(LoggerQtApp
+        ${QT_APP_SOURCES}
+        ${QT_APP_HEADERS}
+        ${SOMEIP_CLIENT_SOURCES}
+        ${COMMONAPI_SOMEIP_GEN_SOURCES}
+        ${COMMONAPI_GEN_HEADERS}
+    )
+
+    target_include_directories(LoggerQtApp PRIVATE
+        inc
+        qt_app/inc
+        src-gen
+        ${COMMONAPI_INCLUDE_DIRS}
+        ${COMMONAPI_SOMEIP_INCLUDE_DIRS}
+        ${VSOMEIP3_INCLUDE_DIRS}
+    )
+
+    target_link_libraries(LoggerQtApp PRIVATE
+        LoggerBase
+        Qt6::Widgets
+        magic_enum::magic_enum
+        Threads::Threads
+        CommonAPI
+        CommonAPI-SomeIP
+        vsomeip3
+        nlohmann_json::nlohmann_json
+    )
+else()
+    message(WARNING "Qt6 Widgets NOT found — skipping LoggerQtApp build")
+endif()
