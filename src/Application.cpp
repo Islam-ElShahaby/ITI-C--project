@@ -186,7 +186,7 @@ void Application::watchConfig() {
     while (m_watchConfig) {
         ssize_t len = read(fd, buffer, sizeof(buffer));
         if (len > 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Debounce
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             
             if (m_logger) m_logger->log(LogMessage("Core", "Config", "Config modification detected. Reloading...", LogSeverity::INFO));
             
@@ -194,6 +194,16 @@ void Application::watchConfig() {
             {
                 std::lock_guard<std::mutex> lock(m_configMutex);
                 m_config = newConfig;
+            }
+
+            // Re-apply the routing table so sink changes take effect immediately
+            if (m_logger) {
+                m_logger->clearRouting();
+                for (const auto& [comp, cfg] : newConfig.telemetry) {
+                    if (!cfg.sinks.empty()) {
+                        m_logger->configureRouting(comp, cfg.sinks);
+                    }
+                }
             }
             
             if (m_logger) m_logger->log(LogMessage("Core", "Config", "Config loaded successfully", LogSeverity::INFO));

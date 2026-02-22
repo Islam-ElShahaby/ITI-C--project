@@ -26,7 +26,13 @@ void LogManager::shutdown()
 }
 
 void LogManager::configureRouting(const std::string& component, const std::vector<std::string>& sinkNames) {
+    std::lock_guard<std::mutex> lock(m_routingMutex);
     m_routingTable[component] = sinkNames;
+}
+
+void LogManager::clearRouting() {
+    std::lock_guard<std::mutex> lock(m_routingMutex);
+    m_routingTable.clear();
 }
 
 void LogManager::processLogs()
@@ -44,9 +50,17 @@ void LogManager::processLogs()
             std::string routingKey = msg.context;
             for (char& c : routingKey) c = std::tolower(static_cast<unsigned char>(c));
 
-            auto it = m_routingTable.find(routingKey);
-            bool hasRouting = (it != m_routingTable.end());
-            const std::vector<std::string>& targetSinks = hasRouting ? it->second : std::vector<std::string>();
+            // Snapshot the routing decision under lock, then release before writing
+            bool hasRouting = false;
+            std::vector<std::string> targetSinks;
+            {
+                std::lock_guard<std::mutex> lock(m_routingMutex);
+                auto it = m_routingTable.find(routingKey);
+                hasRouting = (it != m_routingTable.end());
+                if (hasRouting) {
+                    targetSinks = it->second;
+                }
+            }
 
             if (m_threadPool) 
             {

@@ -1,8 +1,8 @@
 {
     "unicast": "10.145.1.141",
     "logging": {
-        "level": "warning",
-        "console": "true",
+        "level": "error",
+        "console": "false",
         "file": {
             "enable": "false"
         },

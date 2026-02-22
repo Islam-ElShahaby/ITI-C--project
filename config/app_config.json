@@ -12,7 +12,6 @@
             "enabled": true,
             "interval": 1000,
             "sinks": [
-                "console",
                 "file"
             ]
         },
@@ -20,8 +19,7 @@
             "enabled": true,
             "interval": 2000,
             "sinks": [
-                "console",
-                "file"
+                "console"
             ]
         }
     },

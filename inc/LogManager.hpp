@@ -24,6 +24,7 @@ private:
     // Maps component names to the specific sinks they should write to.
     // If a component has no entry here, its messages are sent to every sink.
     std::map<std::string, std::vector<std::string>> m_routingTable;
+    mutable std::mutex m_routingMutex;
 
     // Runs on the worker thread — continuously reads from the buffer and writes to sinks
     void processLogs();
@@ -40,6 +41,7 @@ public:
 
     void addSink(std::unique_ptr<ILogSink> sink);
     void configureRouting(const std::string& component, const std::vector<std::string>& sinkNames);
+    void clearRouting();
     void log(const LogMessage& msg);
     void log(LogMessage&& msg);
     
