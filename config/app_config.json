@@ -10,16 +10,18 @@
         },
         "memory": {
             "enabled": true,
-            "interval": 5000,
+            "interval": 1000,
             "sinks": [
+                "console",
                 "file"
             ]
         },
         "gpu": {
-            "enabled": false,
+            "enabled": true,
             "interval": 2000,
             "sinks": [
-                "console"
+                "console",
+                "file"
             ]
         }
     },
@@ -29,7 +31,7 @@
         },
         "file": {
             "enabled": true,
-            "path": "app_log.txt"
+            "path": "app_log.log"
         }
     },
     "general": {

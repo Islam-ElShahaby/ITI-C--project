@@ -1,5 +1,6 @@
 #include "LogManager.hpp"
 #include "ILogSink.hpp"
+#include <iostream>
 
 LogManager::LogManager(std::shared_ptr<ThreadPool> pool, size_t bufferSize) 
     : messageBuffer(bufferSize), sinks(), m_threadPool(std::move(pool)), running(true)
@@ -40,13 +41,16 @@ void LogManager::processLogs()
         {
             const LogMessage& msg = msgOpt.value();
             
-            // Check if this component has a specific routing rule
-            bool hasRouting = m_routingTable.find(msg.appName) != m_routingTable.end();
-            const auto& targetSinks = m_routingTable[msg.appName];
-            
+            std::string routingKey = msg.context;
+            for (char& c : routingKey) c = std::tolower(static_cast<unsigned char>(c));
+
+            auto it = m_routingTable.find(routingKey);
+            bool hasRouting = (it != m_routingTable.end());
+            const std::vector<std::string>& targetSinks = hasRouting ? it->second : std::vector<std::string>();
+
             if (m_threadPool) 
             {
-                std::vector<std::future<void>> futures;
+                std::vector<std::pair<std::string, std::future<void>>> futures;
                 futures.reserve(sinks.size());
 
                 for (auto& sink : sinks) 
@@ -66,14 +70,21 @@ void LogManager::processLogs()
                     }
 
                     if (shouldLog) {
-                        futures.push_back(m_threadPool->enqueue([sinkPtr, &msg]() {
+                        futures.push_back({sinkPtr->getName(), m_threadPool->enqueue([sinkPtr, &msg]() {
                             sinkPtr->write(msg);
-                        }));
+                        })});
                     }
                 }
 
-                for(auto& f : futures) {
-                   f.get();
+                // Wait for each sink independently — a failure in one sink
+                // must not prevent other sinks from receiving messages
+                for (auto& [name, f] : futures) {
+                    try {
+                        f.get();
+                    } catch (const std::exception& e) {
+                        std::cerr << "[LogManager] Sink '" << name 
+                                  << "' error: " << e.what() << std::endl;
+                    }
                 }
             } 
             else 
@@ -92,7 +103,12 @@ void LogManager::processLogs()
                     }
                     
                     if (shouldLog) {
-                        sink->write(msg);
+                        try {
+                            sink->write(msg);
+                        } catch (const std::exception& e) {
+                            std::cerr << "[LogManager] Sink '" << sink->getName()
+                                      << "' error: " << e.what() << std::endl;
+                        }
                     }
                 }
             }

@@ -27,6 +27,7 @@ cc_library(
     ],
     hdrs = glob(["src-gen/**/*.hpp"]),
     includes = ["src-gen"],
+    alwayslink = True,
     deps = [
         "//third_party:commonapi",
         "//third_party:commonapi_someip",

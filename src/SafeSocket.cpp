@@ -47,10 +47,15 @@ void SafeSocket::connect(const std::string& socketPath) {
     if (::connect(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
         throw std::runtime_error("Failed to connect to UDS path: " + socketPath);
     }
+    m_connected = true;
 }
 
 void SafeSocket::send(const std::string& data) {
+    if (!m_connected) {
+        throw std::runtime_error("Socket is not connected. Cannot send data.");
+    }
     if (::write(fd, data.c_str(), data.size()) == -1) {
+        m_connected = false; // Connection dropped
         throw std::runtime_error("Failed to send data.");
     }
 }

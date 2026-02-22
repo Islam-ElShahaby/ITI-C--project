@@ -18,4 +18,6 @@ public:
     void connect(const std::string& socketPath);
     void send(const std::string& data);
     void receive(std::string& data);
+private:
+    bool m_connected = false;
 };
