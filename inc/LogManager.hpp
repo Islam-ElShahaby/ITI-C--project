@@ -42,6 +42,7 @@ public:
     void addSink(std::unique_ptr<ILogSink> sink);
     void configureRouting(const std::string& component, const std::vector<std::string>& sinkNames);
     void clearRouting();
+    void addSinkToAllRoutes(const std::string& sinkName);
     void log(const LogMessage& msg);
     void log(LogMessage&& msg);
     

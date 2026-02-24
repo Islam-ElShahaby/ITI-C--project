@@ -204,6 +204,11 @@ void Application::watchConfig() {
                         m_logger->configureRouting(comp, cfg.sinks);
                     }
                 }
+                // Re-inject any dynamically added sinks (e.g. Qt GUI sink)
+                std::lock_guard<std::mutex> lock(m_extraSinksMutex);
+                for (const auto& name : m_extraSinkNames) {
+                    m_logger->addSinkToAllRoutes(name);
+                }
             }
             
             if (m_logger) m_logger->log(LogMessage("Core", "Config", "Config loaded successfully", LogSeverity::INFO));

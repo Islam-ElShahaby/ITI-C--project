@@ -35,6 +35,18 @@ void LogManager::clearRouting() {
     m_routingTable.clear();
 }
 
+void LogManager::addSinkToAllRoutes(const std::string& sinkName) {
+    std::lock_guard<std::mutex> lock(m_routingMutex);
+    for (auto& [component, sinks] : m_routingTable) {
+        // Only add if not already present
+        bool found = false;
+        for (const auto& s : sinks) {
+            if (s == sinkName) { found = true; break; }
+        }
+        if (!found) sinks.push_back(sinkName);
+    }
+}
+
 void LogManager::processLogs()
 {
     while (running.load() || !messageBuffer.isEmpty()) 

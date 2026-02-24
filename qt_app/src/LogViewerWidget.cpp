@@ -11,7 +11,7 @@ LogViewerWidget::LogViewerWidget(QWidget* parent)
     mainLayout->setContentsMargins(8, 8, 8, 8);
 
     // Header
-    auto* headerLabel = new QLabel("📋  Log Output");
+    auto* headerLabel = new QLabel("Log Output");
     headerLabel->setStyleSheet("font-size: 14px; font-weight: bold; color: #e0e0f0;");
     mainLayout->addWidget(headerLabel);
 
@@ -20,10 +20,10 @@ LogViewerWidget::LogViewerWidget(QWidget* parent)
 
     m_severityFilter = new QComboBox();
     m_severityFilter->addItem("All Levels",     -1);
-    m_severityFilter->addItem("ℹ INFO",         static_cast<int>(LogSeverity::INFO));
-    m_severityFilter->addItem("⚠ WARNING",      static_cast<int>(LogSeverity::WARNING));
-    m_severityFilter->addItem("🔴 ERROR",       static_cast<int>(LogSeverity::ERROR));
-    m_severityFilter->addItem("🔥 CRITICAL",    static_cast<int>(LogSeverity::CRITICAL));
+    m_severityFilter->addItem("INFO",         static_cast<int>(LogSeverity::INFO));
+    m_severityFilter->addItem("WARNING",      static_cast<int>(LogSeverity::WARNING));
+    m_severityFilter->addItem("ERROR",       static_cast<int>(LogSeverity::ERROR));
+    m_severityFilter->addItem("CRITICAL",    static_cast<int>(LogSeverity::CRITICAL));
     m_severityFilter->setFixedWidth(140);
     m_severityFilter->setStyleSheet(
         "QComboBox { background: #2a2a3e; color: #d0d0e0; border: 1px solid #3a3a50; "

@@ -1,6 +1,26 @@
 {
+    "general": {
+        "global_interval": 1000
+    },
+    "sinks": {
+        "console": {
+            "enabled": true
+        },
+        "file": {
+            "enabled": true,
+            "path": "app_log.log"
+        }
+    },
     "telemetry": {
         "cpu": {
+            "enabled": true,
+            "interval": 1000,
+            "sinks": [
+                "console",
+                "file"
+            ]
+        },
+        "gpu": {
             "enabled": true,
             "interval": 1000,
             "sinks": [
@@ -12,27 +32,9 @@
             "enabled": true,
             "interval": 1000,
             "sinks": [
+                "console",
                 "file"
             ]
-        },
-        "gpu": {
-            "enabled": true,
-            "interval": 2000,
-            "sinks": [
-                "console"
-            ]
         }
-    },
-    "sinks": {
-        "console": {
-            "enabled": true
-        },
-        "file": {
-            "enabled": true,
-            "path": "app_log.log"
-        }
-    },
-    "general": {
-        "global_interval": 1000
     }
 }

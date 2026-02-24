@@ -21,7 +21,14 @@ public:
     
     // Allow injecting additional sinks (e.g. the Qt GUI sink)
     void addSink(std::unique_ptr<ILogSink> sink) {
-        if (m_logger) m_logger->addSink(std::move(sink));
+        if (m_logger) {
+            std::string name = sink->getName();
+            m_logger->addSink(std::move(sink));
+            m_logger->addSinkToAllRoutes(name);
+            // Remember the name so watchConfig() can re-inject after reload
+            std::lock_guard<std::mutex> lock(m_extraSinksMutex);
+            m_extraSinkNames.push_back(name);
+        }
     }
 
 private:
@@ -46,6 +53,10 @@ private:
     std::mutex m_configMutex;
     std::atomic<bool> m_watchConfig{true};
     std::thread m_configWatcherThread;
+
+    // Names of sinks added via addSink() — replayed after config reloads
+    std::vector<std::string> m_extraSinkNames;
+    std::mutex m_extraSinksMutex;
 
     void watchConfig();
 };

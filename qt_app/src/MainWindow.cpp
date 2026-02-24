@@ -17,7 +17,11 @@ MainWindow::MainWindow(const QString& configPath, QWidget* parent)
     // Create widgets
     m_configEditor = new ConfigEditorWidget(configPath, this);
     m_logViewer    = new LogViewerWidget(this);
-    m_charts       = new TelemetryChartWidget(this);
+    m_charts       = new TelemetryChartWidget(configPath, this);
+
+    // When config is saved, update chart enabled flags
+    connect(m_configEditor, &ConfigEditorWidget::configSaved,
+            m_charts, &TelemetryChartWidget::onConfigSaved);
 
     // Right side: tabs for Logs and Charts
     auto* rightTabs = new QTabWidget();
@@ -28,8 +32,8 @@ MainWindow::MainWindow(const QString& configPath, QWidget* parent)
         "padding: 8px 20px; margin-right: 2px; font-weight: bold; } "
         "QTabBar::tab:selected { background: #1e1e2e; color: #00b4d8; } "
         "QTabBar::tab:hover { background: #35354a; }");
-    rightTabs->addTab(m_charts,    "📊 Telemetry Charts");
-    rightTabs->addTab(m_logViewer, "📋 Log Output");
+    rightTabs->addTab(m_charts,    "Telemetry Charts");
+    rightTabs->addTab(m_logViewer, "Log Output");
 
     // Main splitter: Config left, Tabs right
     m_mainSplitter = new QSplitter(Qt::Horizontal, this);

@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <deque>
 #include <mutex>
+#include <atomic>
 #include <QString>
 
 // A single real-time line chart painted with QPainter
@@ -44,7 +45,7 @@ class TelemetryChartWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit TelemetryChartWidget(QWidget* parent = nullptr);
+    explicit TelemetryChartWidget(const QString& configPath, QWidget* parent = nullptr);
 
     RealtimeLineChart* cpuChart()    { return m_cpuChart; }
     RealtimeLineChart* memoryChart() { return m_memChart; }
@@ -54,8 +55,16 @@ public slots:
     void onLogMessage(const QString& formatted, const QString& appName,
                       const QString& context, const QString& text,
                       int severity, qint64 timestamp);
+    void onConfigSaved();
 
 private:
+    void reloadEnabledFlags();
+
+    QString m_configPath;
+    std::atomic<bool> m_cpuEnabled{true};
+    std::atomic<bool> m_memEnabled{true};
+    std::atomic<bool> m_gpuEnabled{true};
+
     RealtimeLineChart* m_cpuChart;
     RealtimeLineChart* m_memChart;
     RealtimeLineChart* m_gpuChart;

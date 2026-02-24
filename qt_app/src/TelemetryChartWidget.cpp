@@ -1,6 +1,9 @@
 #include "TelemetryChartWidget.hpp"
 #include <QPainterPath>
 #include <QRegularExpression>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <algorithm>
 #include <cmath>
 
@@ -183,8 +186,8 @@ void RealtimeLineChart::paintEvent(QPaintEvent* /*event*/)
 // ---------------------------------------------------------------------------
 // TelemetryChartWidget
 // ---------------------------------------------------------------------------
-TelemetryChartWidget::TelemetryChartWidget(QWidget* parent)
-    : QWidget(parent)
+TelemetryChartWidget::TelemetryChartWidget(const QString& configPath, QWidget* parent)
+    : QWidget(parent), m_configPath(configPath)
 {
     auto* layout = new QVBoxLayout(this);
     layout->setSpacing(8);
@@ -209,14 +212,47 @@ TelemetryChartWidget::TelemetryChartWidget(QWidget* parent)
     layout->addWidget(m_memChart);
     layout->addWidget(m_gpuChart);
 
-    // Refresh charts periodically
+    reloadEnabledFlags();
+
+    // Refresh charts periodically + push zeros for disabled sources
     m_refreshTimer = new QTimer(this);
     connect(m_refreshTimer, &QTimer::timeout, this, [this]() {
+        if (!m_cpuEnabled) m_cpuChart->addDataPoint(0);
+        if (!m_memEnabled) m_memChart->addDataPoint(0);
+        if (!m_gpuEnabled) m_gpuChart->addDataPoint(0);
+
         m_cpuChart->update();
         m_memChart->update();
         m_gpuChart->update();
     });
     m_refreshTimer->start(500); // 2 FPS
+}
+
+void TelemetryChartWidget::onConfigSaved()
+{
+    reloadEnabledFlags();
+}
+
+void TelemetryChartWidget::reloadEnabledFlags()
+{
+    QFile file(m_configPath);
+    if (!file.open(QIODevice::ReadOnly)) return;
+
+    QJsonParseError err;
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
+    file.close();
+    if (doc.isNull()) return;
+
+    QJsonObject root = doc.object();
+    if (!root.contains("telemetry")) return;
+    QJsonObject tel = root["telemetry"].toObject();
+
+    if (tel.contains("cpu"))
+        m_cpuEnabled = tel["cpu"].toObject().value("enabled").toBool(true);
+    if (tel.contains("memory"))
+        m_memEnabled = tel["memory"].toObject().value("enabled").toBool(true);
+    if (tel.contains("gpu"))
+        m_gpuEnabled = tel["gpu"].toObject().value("enabled").toBool(true);
 }
 
 void TelemetryChartWidget::onLogMessage(const QString& /*formatted*/,
