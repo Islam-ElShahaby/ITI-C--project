@@ -1,0 +1,43 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/TelemetryService.dir/app/service_main.cpp.o"
+  "CMakeFiles/TelemetryService.dir/app/service_main.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/cpu/CpuUsageDataSomeIPDeployment.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/cpu/CpuUsageDataSomeIPDeployment.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/cpu/CpuUsageDataSomeIPProxy.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/cpu/CpuUsageDataSomeIPProxy.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/cpu/CpuUsageDataSomeIPStubAdapter.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/cpu/CpuUsageDataSomeIPStubAdapter.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/cpu_temp/CpuTempDataSomeIPDeployment.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/cpu_temp/CpuTempDataSomeIPDeployment.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/cpu_temp/CpuTempDataSomeIPProxy.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/cpu_temp/CpuTempDataSomeIPProxy.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/cpu_temp/CpuTempDataSomeIPStubAdapter.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/cpu_temp/CpuTempDataSomeIPStubAdapter.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPDeployment.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPDeployment.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPProxy.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPProxy.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPStubAdapter.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPStubAdapter.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/memory/MemoryUsageDataSomeIPDeployment.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/memory/MemoryUsageDataSomeIPDeployment.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/memory/MemoryUsageDataSomeIPProxy.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/memory/MemoryUsageDataSomeIPProxy.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/memory/MemoryUsageDataSomeIPStubAdapter.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src-gen/v1/omnimetron/memory/MemoryUsageDataSomeIPStubAdapter.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src/CpuTempService.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src/CpuTempService.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src/CpuUsageService.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src/CpuUsageService.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src/GpuUsageService.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src/GpuUsageService.cpp.o.d"
+  "CMakeFiles/TelemetryService.dir/src/MemoryUsageService.cpp.o"
+  "CMakeFiles/TelemetryService.dir/src/MemoryUsageService.cpp.o.d"
+  "TelemetryService"
+  "TelemetryService.pdb"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/TelemetryService.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

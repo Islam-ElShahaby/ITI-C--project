@@ -84,7 +84,7 @@ ConfigEditorWidget::ConfigEditorWidget(const QString& configPath, QWidget* paren
     mainLayout->setContentsMargins(12, 12, 12, 12);
 
     // Header
-    auto* headerLabel = new QLabel("⚙ Configuration");
+    auto* headerLabel = new QLabel("Configuration");
     headerLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: #e0e0f0; padding: 4px 0px;");
     mainLayout->addWidget(headerLabel);
 
@@ -96,6 +96,7 @@ ConfigEditorWidget::ConfigEditorWidget(const QString& configPath, QWidget* paren
     mainLayout->addWidget(createTelemetryGroup("CPU", m_cpuUI));
     mainLayout->addWidget(createTelemetryGroup("Memory", m_memUI));
     mainLayout->addWidget(createTelemetryGroup("GPU", m_gpuUI));
+    mainLayout->addWidget(createTelemetryGroup("CPU Temperature", m_cpuTempUI));
 
     // --- Sinks Section ---
     auto* sinksLabel = new QLabel("LOG SINKS");
@@ -120,7 +121,7 @@ ConfigEditorWidget::ConfigEditorWidget(const QString& configPath, QWidget* paren
     mainLayout->addWidget(genGroup);
 
     // --- Save Button ---
-    m_saveBtn = new QPushButton("💾  Save Configuration");
+    m_saveBtn = new QPushButton("Save Configuration");
     m_saveBtn->setFixedHeight(42);
     m_saveBtn->setCursor(Qt::PointingHandCursor);
     m_saveBtn->setStyleSheet(
@@ -147,6 +148,8 @@ ConfigEditorWidget::ConfigEditorWidget(const QString& configPath, QWidget* paren
     outerLayout->addWidget(scrollArea);
 
     loadConfig();
+
+    setMinimumWidth(340);
 }
 
 QGroupBox* ConfigEditorWidget::createTelemetryGroup(const QString& name, TelemetrySectionUI& ui)
@@ -177,6 +180,22 @@ QGroupBox* ConfigEditorWidget::createTelemetryGroup(const QString& name, Telemet
     intervalRow->addStretch();
     intervalRow->addWidget(ui.intervalSpin);
     vbox->addLayout(intervalRow);
+
+    // Source type row
+    auto* sourceRow = new QHBoxLayout();
+    sourceRow->addWidget(new QLabel("Source:"));
+    ui.sourceCombo = new QComboBox();
+    ui.sourceCombo->addItem("Local",   "local");
+    ui.sourceCombo->addItem("vSOME/IP", "vsomeip");
+    ui.sourceCombo->setFixedWidth(120);
+    ui.sourceCombo->setStyleSheet(
+        "QComboBox { background: #2a2a3e; color: #d0d0e0; border: 1px solid #3a3a50; "
+        "border-radius: 4px; padding: 3px 6px; } "
+        "QComboBox::drop-down { border: none; } "
+        "QComboBox QAbstractItemView { background: #2a2a3e; color: #d0d0e0; border: 1px solid #3a3a50; }");
+    sourceRow->addStretch();
+    sourceRow->addWidget(ui.sourceCombo);
+    vbox->addLayout(sourceRow);
 
     // Sinks row
     auto* sinksLabel = new QLabel("Route to sinks:");
@@ -257,6 +276,11 @@ void ConfigEditorWidget::loadConfig()
         ui.enabledSwitch->setChecked(sec.value("enabled").toBool(true));
         ui.intervalSpin->setValue(sec.value("interval").toInt(1000));
 
+        // Source type
+        QString srcType = sec.value("source").toString("local");
+        int srcIdx = ui.sourceCombo->findData(srcType);
+        if (srcIdx >= 0) ui.sourceCombo->setCurrentIndex(srcIdx);
+
         QJsonArray sinksArr = sec.value("sinks").toArray();
         QStringList sinkList;
         for (auto v : sinksArr) sinkList << v.toString();
@@ -268,6 +292,7 @@ void ConfigEditorWidget::loadConfig()
     loadTelemetry("cpu", m_cpuUI);
     loadTelemetry("memory", m_memUI);
     loadTelemetry("gpu", m_gpuUI);
+    loadTelemetry("cpu_temp", m_cpuTempUI);
 
     // Sinks
     if (root.contains("sinks")) {
@@ -303,6 +328,7 @@ void ConfigEditorWidget::saveConfig()
         QJsonObject obj;
         obj["enabled"] = ui.enabledSwitch->isChecked();
         obj["interval"] = ui.intervalSpin->value();
+        obj["source"] = ui.sourceCombo->currentData().toString();
         QJsonArray sinksArr;
         if (ui.consoleSink->isChecked()) sinksArr.append("console");
         if (ui.fileSink->isChecked())    sinksArr.append("file");
@@ -312,9 +338,10 @@ void ConfigEditorWidget::saveConfig()
     };
 
     QJsonObject telObj;
-    telObj["cpu"]    = buildTelemetry(m_cpuUI);
-    telObj["memory"] = buildTelemetry(m_memUI);
-    telObj["gpu"]    = buildTelemetry(m_gpuUI);
+    telObj["cpu"]      = buildTelemetry(m_cpuUI);
+    telObj["memory"]   = buildTelemetry(m_memUI);
+    telObj["gpu"]      = buildTelemetry(m_gpuUI);
+    telObj["cpu_temp"] = buildTelemetry(m_cpuTempUI);
     root["telemetry"] = telObj;
 
     // Sinks

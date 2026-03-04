@@ -61,9 +61,6 @@ public:
         return &remoteEventHandler_;
     }
 
-    COMMONAPI_EXPORT virtual void fireNotifyGpuUsageDataChangeEvent(const float &_usage) {
-        GpuUsageDataStub::fireNotifyGpuUsageDataChangeEvent(_usage);
-    }
     COMMONAPI_EXPORT virtual void requestGpuUsageData(const std::shared_ptr<CommonAPI::ClientId> _client, requestGpuUsageDataReply_t _reply) {
         (void)_client;
         float usage = 0.0f;

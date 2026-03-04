@@ -1,75 +1,95 @@
 #include "GpuUsageService.hpp"
+#include "CpuUsageService.hpp"
+#include "MemoryUsageService.hpp"
+#include "CpuTempService.hpp"
 #include <CommonAPI/CommonAPI.hpp>
 #include <iostream>
 #include <thread>
 #include <chrono>
 #include <csignal>
-#include <atomic>
-
-std::atomic<bool> g_running(true);
-
-void signalHandler(int signal) {
-    std::cout << "\n[GpuService] Received signal " << signal << ", shutting down..." << std::endl;
-    g_running = false;
-}
+#include <signal.h>
 
 int main(int argc, char** argv) {
     (void)argc;
     (void)argv;
 
-    std::signal(SIGINT, signalHandler);
-    std::signal(SIGTERM, signalHandler);
+    sigset_t waitset;
+    sigemptyset(&waitset);
+    sigaddset(&waitset, SIGINT);
+    sigaddset(&waitset, SIGTERM);
+    pthread_sigmask(SIG_BLOCK, &waitset, nullptr);
 
-    std::cout << "=====================================" << std::endl;
-    std::cout << " GPU Usage Data Service (vSOME/IP)" << std::endl;
-    std::cout << "=====================================" << std::endl;
+    std::cout << "===========================================" << std::endl;
+    std::cout << " Telemetry Service (vSOME/IP)" << std::endl;
+    std::cout << " CPU + Memory + GPU + CPU Temp" << std::endl;
+    std::cout << "===========================================" << std::endl;
 
     try {
         auto runtime = CommonAPI::Runtime::get();
         if (!runtime) {
-            std::cerr << "[GpuService] Failed to get CommonAPI runtime" << std::endl;
+            std::cerr << "[TelemetryService] Failed to get CommonAPI runtime" << std::endl;
             return 1;
         }
-
-        auto gpuService = std::make_shared<service::GpuUsageService>();
 
         const std::string domain = "local";
-        const std::string instance = "omnimetron.gpu.GpuUsageData";
 
-        if (!runtime->registerService(domain, instance, gpuService)) {
-            std::cerr << "[GpuService] Failed to register service" << std::endl;
+        // --- Register GPU service ---
+        auto gpuService = std::make_shared<service::GpuUsageService>();
+        const std::string gpuInstance = "omnimetron.gpu.GpuUsageData";
+        if (!runtime->registerService(domain, gpuInstance, gpuService)) {
+            std::cerr << "[TelemetryService] Failed to register GPU service" << std::endl;
             return 1;
         }
+        std::cout << "[TelemetryService] GPU service registered: " << gpuInstance << std::endl;
 
-        std::cout << "[GpuService] Service registered successfully" << std::endl;
-        std::cout << "[GpuService] Domain: " << domain << std::endl;
-        std::cout << "[GpuService] Instance: " << instance << std::endl;
-        std::cout << "[GpuService] Waiting for client requests..." << std::endl;
-        std::cout << std::endl;
-
-        int broadcastIntervalMs = 2000;
-        auto lastBroadcast = std::chrono::steady_clock::now();
-
-        while (g_running) {
-            auto now = std::chrono::steady_clock::now();
-            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastBroadcast).count();
-
-            if (elapsed >= broadcastIntervalMs) {
-                float usage = gpuService->getCurrentGpuUsage();
-                gpuService->broadcastGpuUsage(usage);
-                lastBroadcast = now;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // --- Register CPU service ---
+        auto cpuService = std::make_shared<service::CpuUsageService>();
+        const std::string cpuInstance = "omnimetron.cpu.CpuUsageData";
+        if (!runtime->registerService(domain, cpuInstance, cpuService)) {
+            std::cerr << "[TelemetryService] Failed to register CPU service" << std::endl;
+            return 1;
         }
+        std::cout << "[TelemetryService] CPU service registered: " << cpuInstance << std::endl;
 
-        runtime->unregisterService(domain, v1::omnimetron::gpu::GpuUsageData::getInterface(), instance);
-        std::cout << "[GpuService] Service unregistered" << std::endl;
+        // --- Register Memory service ---
+        auto memService = std::make_shared<service::MemoryUsageService>();
+        const std::string memInstance = "omnimetron.memory.MemoryUsageData";
+        if (!runtime->registerService(domain, memInstance, memService)) {
+            std::cerr << "[TelemetryService] Failed to register Memory service" << std::endl;
+            return 1;
+        }
+        std::cout << "[TelemetryService] Memory service registered: " << memInstance << std::endl;
+
+        // --- Register CPU Temperature service ---
+        auto cpuTempService = std::make_shared<service::CpuTempService>();
+        const std::string cpuTempInstance = "omnimetron.cpu_temp.CpuTempData";
+        if (!runtime->registerService(domain, cpuTempInstance, cpuTempService)) {
+            std::cerr << "[TelemetryService] Failed to register CPU Temperature service" << std::endl;
+            return 1;
+        }
+        std::cout << "[TelemetryService] CPU Temperature service registered: " << cpuTempInstance << std::endl;
+
+        std::cout << std::endl;
+        std::cout << "[TelemetryService] All services running. Waiting for client requests..." << std::endl;
+        std::cout << "[TelemetryService] (Press Ctrl+C to stop)" << std::endl;
+
+        // Wait for SIGINT or SIGTERM using sigwait (signal-safe, no UB)
+        int sig = 0;
+        sigwait(&waitset, &sig);
+        std::cout << "\n[TelemetryService] Received signal " << sig << ", shutting down..." << std::endl;
+
+        // Unregister all services
+        runtime->unregisterService(domain, v1::omnimetron::gpu::GpuUsageData::getInterface(), gpuInstance);
+        runtime->unregisterService(domain, v1::omnimetron::cpu::CpuUsageData::getInterface(), cpuInstance);
+        runtime->unregisterService(domain, v1::omnimetron::memory::MemoryUsageData::getInterface(), memInstance);
+        runtime->unregisterService(domain, v1::omnimetron::cpu_temp::CpuTempData::getInterface(), cpuTempInstance);
+        std::cout << "[TelemetryService] All services unregistered" << std::endl;
 
     } catch (const std::exception& e) {
-        std::cerr << "[GpuService] Error: " << e.what() << std::endl;
+        std::cerr << "[TelemetryService] Error: " << e.what() << std::endl;
         return 1;
     }
 
-    std::cout << "[GpuService] Shutdown complete" << std::endl;
+    std::cout << "[TelemetryService] Shutdown complete" << std::endl;
     return 0;
 }

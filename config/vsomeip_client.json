@@ -1,7 +1,7 @@
 {
-    "unicast": "10.145.1.141",
+    "unicast": "10.42.0.1",
     "logging": {
-        "level": "error",
+        "level": "debug",
         "console": "false",
         "file": {
             "enable": "false"
@@ -10,7 +10,7 @@
     },
     "applications": [
         {
-            "name": "GpuClient",
+            "name": "TelemetryClient",
             "id": "0x1002"
         }
     ],
@@ -26,9 +26,45 @@
                 30499,
                 30499
             ]
+        },
+        {
+            "service": "0x1B1F",
+            "instance": "0x567B",
+            "unreliable": [
+                30502,
+                30502
+            ],
+            "reliable": [
+                30501,
+                30501
+            ]
+        },
+        {
+            "service": "0x1B20",
+            "instance": "0x567C",
+            "unreliable": [
+                30504,
+                30504
+            ],
+            "reliable": [
+                30503,
+                30503
+            ]
+        },
+        {
+            "service": "0x1B21",
+            "instance": "0x567D",
+            "unreliable": [
+                30506,
+                30506
+            ],
+            "reliable": [
+                30505,
+                30505
+            ]
         }
     ],
-    "routing": "GpuService",
+    "routing": "TelemetryClient",
     "service-discovery": {
         "enable": "true",
         "multicast": "224.244.224.245",

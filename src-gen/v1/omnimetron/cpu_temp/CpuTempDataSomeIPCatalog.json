@@ -1,0 +1,8 @@
+{
+    "omnimetron.cpu_temp.CpuTempData" : {
+        "service_id": 6945,
+        "instances" : {
+            "omnimetron.cpu_temp.CpuTempData": 22141
+        }
+    }
+}

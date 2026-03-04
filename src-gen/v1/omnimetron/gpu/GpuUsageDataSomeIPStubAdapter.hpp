@@ -47,8 +47,6 @@ public:
         GpuUsageDataSomeIPStubAdapterHelper::deinit();
     }
 
-    void fireNotifyGpuUsageDataChangeEvent(const float &_usage);
-
     void deactivateManagedInstances() {}
     
     CommonAPI::SomeIP::GetAttributeStubDispatcher<
@@ -77,18 +75,13 @@ public:
         requestGpuUsageDataStubDispatcher(
             &GpuUsageDataStub::requestGpuUsageData,
             false,
-            _stub->hasElement(1),
+            _stub->hasElement(0),
             std::make_tuple(),
             std::make_tuple(static_cast< CommonAPI::EmptyDeployment* >(nullptr)))
         
     {
         GpuUsageDataSomeIPStubAdapterHelper::addStubDispatcher( { CommonAPI::SomeIP::method_id_t(0x1) }, &requestGpuUsageDataStubDispatcher );
         // Provided events/fields
-        {
-            std::set<CommonAPI::SomeIP::eventgroup_id_t> itsEventGroups;
-            itsEventGroups.insert(CommonAPI::SomeIP::eventgroup_id_t(0x1b5e));
-            CommonAPI::SomeIP::StubAdapter::registerEvent(CommonAPI::SomeIP::event_id_t(0x9486), itsEventGroups, CommonAPI::SomeIP::event_type_e::ET_EVENT, CommonAPI::SomeIP::reliability_type_e::RT_UNRELIABLE);
-        }
     }
 
     // Register/Unregister event handlers for selective broadcasts
@@ -96,18 +89,6 @@ public:
     void unregisterSelectiveEventHandlers();
 
 };
-
-template <typename _Stub, typename... _Stubs>
-void GpuUsageDataSomeIPStubAdapterInternal<_Stub, _Stubs...>::fireNotifyGpuUsageDataChangeEvent(const float &_usage) {
-    CommonAPI::SomeIP::StubEventHelper<CommonAPI::SomeIP::SerializableArguments<  float
-    >>
-        ::sendEvent(
-            *this,
-            CommonAPI::SomeIP::event_id_t(0x9486),
-            false,
-            _usage
-    );
-}
 
 
 template <typename _Stub, typename... _Stubs>

@@ -1,0 +1,23 @@
+import "platform:/plugin/org.genivi.commonapi.someip/deployment/CommonAPI-SOMEIP_deployment_spec.fdepl"
+import "cpu_temp.fidl"
+
+define org.genivi.commonapi.someip.deployment for interface omnimetron.cpu_temp.CpuTempData {
+    SomeIpServiceID = 6945
+
+    method requestCpuTempData {
+        SomeIpMethodID = 1
+        SomeIpReliable = false
+    }
+}
+
+define org.genivi.commonapi.someip.deployment for provider as Service {
+    instance omnimetron.cpu_temp.CpuTempData {
+        InstanceId = "omnimetron.cpu_temp.CpuTempData"
+
+        SomeIpInstanceID = 22141
+
+        SomeIpUnicastAddress = "127.0.0.1"
+        SomeIpReliableUnicastPort = 30505
+        SomeIpUnreliableUnicastPort = 30506
+    }
+}

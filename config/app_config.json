@@ -16,25 +16,35 @@
             "enabled": true,
             "interval": 1000,
             "sinks": [
-                "console",
                 "file"
-            ]
+            ],
+            "source": "vsomeip"
         },
-        "gpu": {
+        "cpu_temp": {
             "enabled": true,
             "interval": 1000,
             "sinks": [
                 "console",
                 "file"
-            ]
+            ],
+            "source": "local"
+        },
+        "gpu": {
+            "enabled": false,
+            "interval": 1000,
+            "sinks": [
+                "console",
+                "file"
+            ],
+            "source": "local"
         },
         "memory": {
             "enabled": true,
             "interval": 1000,
             "sinks": [
-                "console",
-                "file"
-            ]
+                "console"
+            ],
+            "source": "vsomeip"
         }
     }
 }

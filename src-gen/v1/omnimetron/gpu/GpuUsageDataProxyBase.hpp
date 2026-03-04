@@ -21,7 +21,6 @@
 
 #include <vector>
 
-#include <CommonAPI/Event.hpp>
 #include <CommonAPI/Proxy.hpp>
 #include <functional>
 #include <future>
@@ -38,13 +37,9 @@ namespace gpu {
 class GpuUsageDataProxyBase
     : virtual public CommonAPI::Proxy {
 public:
-    typedef CommonAPI::Event<
-        float
-    > NotifyGpuUsageDataChangeEvent;
 
     typedef std::function<void(const CommonAPI::CallStatus&, const float&)> RequestGpuUsageDataAsyncCallback;
 
-    virtual NotifyGpuUsageDataChangeEvent& getNotifyGpuUsageDataChangeEvent() = 0;
     virtual void requestGpuUsageData(CommonAPI::CallStatus &_internalCallStatus, float &_usage, const CommonAPI::CallInfo *_info = nullptr) = 0;
     virtual std::future<CommonAPI::CallStatus> requestGpuUsageDataAsync(RequestGpuUsageDataAsyncCallback _callback = nullptr, const CommonAPI::CallInfo *_info = nullptr) = 0;
 

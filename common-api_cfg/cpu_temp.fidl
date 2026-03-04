@@ -1,0 +1,11 @@
+package omnimetron.cpu_temp
+
+interface CpuTempData {
+    version {major 1 minor 0}
+
+    method requestCpuTempData {
+        out {
+            Float temperature
+        }
+    }
+}

@@ -10,6 +10,7 @@
 struct TelemetryConfig {
     bool enabled = true;
     int interval = 1000;
+    std::string source = "local";
     std::vector<std::string> sinks;
 };
 
@@ -42,6 +43,7 @@ struct AppConfig {
                     TelemetryConfig tc;
                     if (val.contains("enabled")) tc.enabled = val["enabled"];
                     if (val.contains("interval")) tc.interval = val["interval"];
+                    if (val.contains("source")) tc.source = val["source"];
                     if (val.contains("sinks")) tc.sinks = val["sinks"].get<std::vector<std::string>>();
                     config.telemetry[key] = tc;
                 }

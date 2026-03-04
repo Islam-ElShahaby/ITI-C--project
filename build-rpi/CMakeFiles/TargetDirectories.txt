@@ -1,0 +1,5 @@
+/home/mrdark/ITI/workspace/ITI-C--porject/build-rpi/CMakeFiles/LoggerBase.dir
+/home/mrdark/ITI/workspace/ITI-C--porject/build-rpi/CMakeFiles/LoggerApp.dir
+/home/mrdark/ITI/workspace/ITI-C--porject/build-rpi/CMakeFiles/TelemetryService.dir
+/home/mrdark/ITI/workspace/ITI-C--porject/build-rpi/CMakeFiles/edit_cache.dir
+/home/mrdark/ITI/workspace/ITI-C--porject/build-rpi/CMakeFiles/rebuild_cache.dir

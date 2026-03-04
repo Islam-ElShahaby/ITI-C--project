@@ -63,6 +63,15 @@ set(COMMONAPI_SOMEIP_GEN_SOURCES
     src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPDeployment.cpp
     src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPProxy.cpp
     src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPStubAdapter.cpp
+    src-gen/v1/omnimetron/cpu/CpuUsageDataSomeIPDeployment.cpp
+    src-gen/v1/omnimetron/cpu/CpuUsageDataSomeIPProxy.cpp
+    src-gen/v1/omnimetron/cpu/CpuUsageDataSomeIPStubAdapter.cpp
+    src-gen/v1/omnimetron/memory/MemoryUsageDataSomeIPDeployment.cpp
+    src-gen/v1/omnimetron/memory/MemoryUsageDataSomeIPProxy.cpp
+    src-gen/v1/omnimetron/memory/MemoryUsageDataSomeIPStubAdapter.cpp
+    src-gen/v1/omnimetron/cpu_temp/CpuTempDataSomeIPDeployment.cpp
+    src-gen/v1/omnimetron/cpu_temp/CpuTempDataSomeIPProxy.cpp
+    src-gen/v1/omnimetron/cpu_temp/CpuTempDataSomeIPStubAdapter.cpp
 )
 
 set(COMMONAPI_GEN_HEADERS
@@ -71,6 +80,22 @@ set(COMMONAPI_GEN_HEADERS
     src-gen/v1/omnimetron/gpu/GpuUsageDataProxyBase.hpp
     src-gen/v1/omnimetron/gpu/GpuUsageDataStub.hpp
     src-gen/v1/omnimetron/gpu/GpuUsageDataStubDefault.hpp
+    src-gen/v1/omnimetron/cpu/CpuUsageData.hpp
+    src-gen/v1/omnimetron/cpu/CpuUsageDataProxy.hpp
+    src-gen/v1/omnimetron/cpu/CpuUsageDataProxyBase.hpp
+    src-gen/v1/omnimetron/cpu/CpuUsageDataStub.hpp
+    src-gen/v1/omnimetron/cpu/CpuUsageDataStubDefault.hpp
+    src-gen/v1/omnimetron/memory/MemoryUsageData.hpp
+    src-gen/v1/omnimetron/memory/MemoryUsageDataProxy.hpp
+    src-gen/v1/omnimetron/memory/MemoryUsageDataProxyBase.hpp
+    src-gen/v1/omnimetron/memory/MemoryUsageDataStub.hpp
+    src-gen/v1/omnimetron/memory/MemoryUsageDataStubDefault.hpp
+    # cpu_temp
+    src-gen/v1/omnimetron/cpu_temp/CpuTempData.hpp
+    src-gen/v1/omnimetron/cpu_temp/CpuTempDataProxy.hpp
+    src-gen/v1/omnimetron/cpu_temp/CpuTempDataProxyBase.hpp
+    src-gen/v1/omnimetron/cpu_temp/CpuTempDataStub.hpp
+    src-gen/v1/omnimetron/cpu_temp/CpuTempDataStubDefault.hpp
 )
 
 # 8. SomeIP Telemetry Sources
@@ -80,6 +105,9 @@ set(SOMEIP_CLIENT_SOURCES
 
 set(SOMEIP_SERVICE_SOURCES
     src/GpuUsageService.cpp
+    src/CpuUsageService.cpp
+    src/MemoryUsageService.cpp
+    src/CpuTempService.cpp
 )
 
 # 9. Create base library for common code
@@ -116,15 +144,15 @@ target_include_directories(LoggerApp PRIVATE
     ${VSOMEIP3_INCLUDE_DIRS}
 )
 
-# 11. Create GPU Service Application
-add_executable(GpuService
+# 11. Create Telemetry Service Application (GPU + CPU + Memory)
+add_executable(TelemetryService
     app/service_main.cpp
     ${SOMEIP_SERVICE_SOURCES}
     ${COMMONAPI_SOMEIP_GEN_SOURCES}
     ${COMMONAPI_GEN_HEADERS}
 )
 
-target_include_directories(GpuService PRIVATE
+target_include_directories(TelemetryService PRIVATE
     inc
     src-gen
     ${COMMONAPI_INCLUDE_DIRS}
@@ -145,7 +173,7 @@ target_link_libraries(LoggerApp PRIVATE
     nlohmann_json::nlohmann_json
 )
 
-target_link_libraries(GpuService PRIVATE
+target_link_libraries(TelemetryService PRIVATE
     magic_enum::magic_enum
     Threads::Threads
     CommonAPI

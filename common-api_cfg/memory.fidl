@@ -1,0 +1,11 @@
+package omnimetron.memory
+
+interface MemoryUsageData {
+    version {major 1 minor 0}
+
+    method requestMemoryUsageData {
+        out {
+            Float usageMB
+        }
+    }
+}

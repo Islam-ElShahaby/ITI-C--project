@@ -1,0 +1,8 @@
+{
+    "omnimetron.memory.MemoryUsageData" : {
+        "service_id": 6944,
+        "instances" : {
+            "omnimetron.memory.MemoryUsageData": 22140
+        }
+    }
+}

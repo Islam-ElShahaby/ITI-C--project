@@ -4,6 +4,7 @@
 #include <QSpinBox>
 #include <QPushButton>
 #include <QLineEdit>
+#include <QComboBox>
 #include <QLabel>
 #include <QGroupBox>
 #include <QVBoxLayout>
@@ -37,6 +38,7 @@ private:
 
 struct TelemetrySectionUI {
     ToggleSwitch*    enabledSwitch = nullptr;
+    QComboBox*       sourceCombo   = nullptr;
     QSpinBox*        intervalSpin  = nullptr;
     QCheckBox*       consoleSink   = nullptr;
     QCheckBox*       fileSink      = nullptr;
@@ -71,6 +73,7 @@ private:
     TelemetrySectionUI m_cpuUI;
     TelemetrySectionUI m_memUI;
     TelemetrySectionUI m_gpuUI;
+    TelemetrySectionUI m_cpuTempUI;
 
     // Sink sections
     SinkSectionUI m_consoleSinkUI;

@@ -21,7 +21,7 @@ ThreadPool::~ThreadPool()
     shutdown();
 }
 
-// Submits a task without caring about the result — useful for fire-and-forget work
+// Submits a task without caring about the result
 void ThreadPool::enqueueTask(std::function<void()> task)
 {
     {

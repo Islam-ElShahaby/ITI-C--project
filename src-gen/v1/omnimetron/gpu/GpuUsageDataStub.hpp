@@ -23,7 +23,6 @@
 #define HAS_DEFINED_COMMONAPI_INTERNAL_COMPILATION_HERE
 #endif
 
-#include <unordered_set>
 #include <vector>
 
 
@@ -48,11 +47,6 @@ class GpuUsageDataStubAdapter
     : public virtual CommonAPI::StubAdapter,
       public virtual GpuUsageData {
  public:
-    /**
-    * Sends a broadcast event for notifyGpuUsageDataChange. Should not be called directly.
-    * Instead, the "fire<broadcastName>Event" methods of the stub should be used.
-    */
-    virtual void fireNotifyGpuUsageDataChangeEvent(const float &_usage) = 0;
 
 
     virtual void deactivateManagedInstances() = 0;
@@ -100,16 +94,10 @@ public:
     virtual ~GpuUsageDataStub() {}
     void lockInterfaceVersionAttribute(bool _lockAccess) { static_cast<void>(_lockAccess); }
     bool hasElement(const uint32_t _id) const {
-        return (_id < 2);
+        return (_id < 1);
     }
     virtual const CommonAPI::Version& getInterfaceVersion(std::shared_ptr<CommonAPI::ClientId> _client) = 0;
 
-    /// Sends a broadcast event for notifyGpuUsageDataChange.
-    virtual void fireNotifyGpuUsageDataChangeEvent(const float &_usage) {
-        auto stubAdapter = CommonAPI::Stub<GpuUsageDataStubAdapter, GpuUsageDataStubRemoteEvent>::stubAdapter_.lock();
-        if (stubAdapter)
-            stubAdapter->fireNotifyGpuUsageDataChangeEvent(_usage);
-    }
     /// This is the method that will be called on remote calls on the method requestGpuUsageData.
     virtual void requestGpuUsageData(const std::shared_ptr<CommonAPI::ClientId> _client, requestGpuUsageDataReply_t _reply) = 0;
 

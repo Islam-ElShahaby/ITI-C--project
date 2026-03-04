@@ -2,6 +2,7 @@
 #include <memory>
 #include <atomic>
 #include <string>
+#include <map>
 #include "LogManager.hpp"
 #include "TelemetrySources.hpp"
 #include "SomeIPTelemetrySource.hpp"
@@ -35,16 +36,22 @@ private:
     void setupLogging();
     void setupTelemetry();
     void runTelemetryLoop();
+    
+    // Creates the appropriate ITelemetrySource for a given component + source type
+    std::unique_ptr<ITelemetrySource> createSource(const std::string& component,
+                                                    const std::string& sourceType);
 
     AppConfig m_config;
     std::shared_ptr<ThreadPool> m_threadPool;
     std::unique_ptr<LogManager> m_logger;
     
-    CpuTelemetrySource m_cpuSource;
-    MemoryTelemetrySource m_memSource;
-    telemetry::SomeIPTelemetrySourceAdapter m_gpuSource{false};
+    // Polymorphic telemetry sources — key is component name (cpu, memory, gpu)
+    std::map<std::string, std::unique_ptr<ITelemetrySource>> m_sources;
+    std::mutex m_sourcesMutex;
+    
     LogFormatter<CpuPolicy> m_cpuFormatter;
     LogFormatter<RamPolicy> m_ramFormatter;
+    LogFormatter<CpuTempPolicy> m_cpuTempFormatter;
 
     std::atomic<bool> m_running{true};
 

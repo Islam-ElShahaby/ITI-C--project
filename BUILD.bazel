@@ -21,9 +21,22 @@ cc_library(
 cc_library(
     name = "commonapi_gen",
     srcs = [
+        # GPU
         "src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPDeployment.cpp",
         "src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPProxy.cpp",
         "src-gen/v1/omnimetron/gpu/GpuUsageDataSomeIPStubAdapter.cpp",
+        # CPU
+        "src-gen/v1/omnimetron/cpu/CpuUsageDataSomeIPDeployment.cpp",
+        "src-gen/v1/omnimetron/cpu/CpuUsageDataSomeIPProxy.cpp",
+        "src-gen/v1/omnimetron/cpu/CpuUsageDataSomeIPStubAdapter.cpp",
+        # Memory
+        "src-gen/v1/omnimetron/memory/MemoryUsageDataSomeIPDeployment.cpp",
+        "src-gen/v1/omnimetron/memory/MemoryUsageDataSomeIPProxy.cpp",
+        "src-gen/v1/omnimetron/memory/MemoryUsageDataSomeIPStubAdapter.cpp",
+        # CPU Temperature
+        "src-gen/v1/omnimetron/cpu_temp/CpuTempDataSomeIPDeployment.cpp",
+        "src-gen/v1/omnimetron/cpu_temp/CpuTempDataSomeIPProxy.cpp",
+        "src-gen/v1/omnimetron/cpu_temp/CpuTempDataSomeIPStubAdapter.cpp",
     ],
     hdrs = glob(["src-gen/**/*.hpp"]),
     includes = ["src-gen"],
@@ -92,13 +105,16 @@ cc_binary(
     ],
 )
 
-# ── GpuService Executable ──────────────────────────────────────
+# ── TelemetryService Executable ─────────────────────────────────
 
 cc_binary(
-    name = "GpuService",
+    name = "TelemetryService",
     srcs = [
         "app/service_main.cpp",
         "src/GpuUsageService.cpp",
+        "src/CpuUsageService.cpp",
+        "src/MemoryUsageService.cpp",
+        "src/CpuTempService.cpp",
     ],
     includes = [
         "src-gen",

@@ -70,12 +70,6 @@ public:
     virtual std::future<void> getCompletionFuture();
 
     /**
-     * Returns the wrapper class that provides access to the broadcast notifyGpuUsageDataChange.
-     */
-    virtual NotifyGpuUsageDataChangeEvent& getNotifyGpuUsageDataChangeEvent() {
-        return delegate_->getNotifyGpuUsageDataChangeEvent();
-    }
-    /**
      * Calls requestGpuUsageData with synchronous semantics.
      *
      * All non-const parameters will be filled with the returned values.

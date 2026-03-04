@@ -1,0 +1,8 @@
+{
+    "omnimetron.cpu.CpuUsageData" : {
+        "service_id": 6943,
+        "instances" : {
+            "omnimetron.cpu.CpuUsageData": 22139
+        }
+    }
+}

@@ -47,8 +47,7 @@ INITIALIZER(registerGpuUsageDataSomeIPProxy) {
 GpuUsageDataSomeIPProxy::GpuUsageDataSomeIPProxy(
     const CommonAPI::SomeIP::Address &_address,
     const std::shared_ptr<CommonAPI::SomeIP::ProxyConnection> &_connection)
-        : CommonAPI::SomeIP::Proxy(_address, _connection),
-          notifyGpuUsageDataChange_(*this, 0x1b5e, CommonAPI::SomeIP::event_id_t(0x9486), CommonAPI::SomeIP::event_type_e::ET_EVENT , CommonAPI::SomeIP::reliability_type_e::RT_UNRELIABLE, false, std::make_tuple(static_cast< CommonAPI::EmptyDeployment* >(nullptr)))
+        : CommonAPI::SomeIP::Proxy(_address, _connection)
 {
 }
 
@@ -56,9 +55,6 @@ GpuUsageDataSomeIPProxy::~GpuUsageDataSomeIPProxy() {
 }
 
 
-GpuUsageDataSomeIPProxy::NotifyGpuUsageDataChangeEvent& GpuUsageDataSomeIPProxy::getNotifyGpuUsageDataChangeEvent() {
-    return notifyGpuUsageDataChange_;
-}
 
 void GpuUsageDataSomeIPProxy::requestGpuUsageData(CommonAPI::CallStatus &_internalCallStatus, float &_usage, const CommonAPI::CallInfo *_info) {
     CommonAPI::Deployable< float, CommonAPI::EmptyDeployment> deploy_usage(static_cast< CommonAPI::EmptyDeployment* >(nullptr));

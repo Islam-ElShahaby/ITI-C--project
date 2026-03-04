@@ -18,6 +18,7 @@ enum class LogSeverity
 enum class LogTelemetrySrc
 {
     Cpu,
+    CpuTemp,
     GPU,
     Memory,
     Disk,

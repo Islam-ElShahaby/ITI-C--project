@@ -1,5 +1,5 @@
 {
-    "unicast": "10.145.1.141",
+    "unicast": "192.168.1.179",
     "logging": {
         "level": "error",
         "console": "false",
@@ -10,7 +10,7 @@
     },
     "applications": [
         {
-            "name": "GpuService",
+            "name": "TelemetryService",
             "id": "0x1001"
         }
     ],
@@ -23,9 +23,36 @@
                 "port": "30499",
                 "enable-magic-cookies": "false"
             }
+        },
+        {
+            "service": "0x1B1F",
+            "instance": "0x567B",
+            "unreliable": "30502",
+            "reliable": {
+                "port": "30501",
+                "enable-magic-cookies": "false"
+            }
+        },
+        {
+            "service": "0x1B20",
+            "instance": "0x567C",
+            "unreliable": "30504",
+            "reliable": {
+                "port": "30503",
+                "enable-magic-cookies": "false"
+            }
+        },
+        {
+            "service": "0x1B21",
+            "instance": "0x567D",
+            "unreliable": "30506",
+            "reliable": {
+                "port": "30505",
+                "enable-magic-cookies": "false"
+            }
         }
     ],
-    "routing": "GpuService",
+    "routing": "TelemetryService",
     "service-discovery": {
         "enable": "true",
         "multicast": "224.244.224.245",

@@ -20,7 +20,6 @@
 #include <CommonAPI/SomeIP/Factory.hpp>
 #include <CommonAPI/SomeIP/Proxy.hpp>
 #include <CommonAPI/SomeIP/Types.hpp>
-#include <CommonAPI/SomeIP/Event.hpp>
 
 #if defined (HAS_DEFINED_COMMONAPI_INTERNAL_COMPILATION_HERE)
 #undef COMMONAPI_INTERNAL_COMPILATION
@@ -55,8 +54,6 @@ public:
 
     virtual ~GpuUsageDataSomeIPProxy();
 
-    virtual NotifyGpuUsageDataChangeEvent& getNotifyGpuUsageDataChangeEvent();
-
     virtual void requestGpuUsageData(CommonAPI::CallStatus &_internalCallStatus, float &_usage, const CommonAPI::CallInfo *_info);
 
     virtual std::future<CommonAPI::CallStatus> requestGpuUsageDataAsync(RequestGpuUsageDataAsyncCallback _callback, const CommonAPI::CallInfo *_info);
@@ -66,7 +63,6 @@ public:
     virtual std::future<void> getCompletionFuture();
 
 private:
-    CommonAPI::SomeIP::Event<NotifyGpuUsageDataChangeEvent, CommonAPI::Deployable< float, CommonAPI::EmptyDeployment >> notifyGpuUsageDataChange_;
 
 };
 

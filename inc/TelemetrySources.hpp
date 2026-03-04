@@ -54,3 +54,22 @@ public:
     bool openSource() override;
     bool readSource(std::string& out) override;
 };
+
+class GpuTelemetrySource : public ITelemetrySource
+{
+public:
+    GpuTelemetrySource() = default;
+    bool openSource() override;
+    bool readSource(std::string& out) override;
+};
+
+class CpuTempTelemetrySource : public ITelemetrySource
+{
+private:
+    std::string m_tempPath;
+
+public:
+    CpuTempTelemetrySource() = default;
+    bool openSource() override;
+    bool readSource(std::string& out) override;
+};

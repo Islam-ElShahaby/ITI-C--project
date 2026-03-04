@@ -46,3 +46,18 @@ struct RamPolicy
              :                    LogSeverity::INFO;
     }
 };
+
+struct CpuTempPolicy
+{
+    static constexpr LogTelemetrySrc context = LogTelemetrySrc::CpuTemp;
+    static constexpr std::string_view unit = "°C";
+
+    static constexpr float WARNING = 75.0f;
+    static constexpr float CRITICAL = 90.0f;
+
+    static constexpr LogSeverity inferSeverity(float val) noexcept {
+        return (val > CRITICAL) ? LogSeverity::CRITICAL
+             : (val > WARNING)  ? LogSeverity::WARNING
+             :                    LogSeverity::INFO;
+    }
+};

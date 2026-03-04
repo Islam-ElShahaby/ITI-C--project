@@ -1,0 +1,23 @@
+import "platform:/plugin/org.genivi.commonapi.someip/deployment/CommonAPI-SOMEIP_deployment_spec.fdepl"
+import "memory.fidl"
+
+define org.genivi.commonapi.someip.deployment for interface omnimetron.memory.MemoryUsageData {
+    SomeIpServiceID = 6944
+
+    method requestMemoryUsageData {
+        SomeIpMethodID = 1
+        SomeIpReliable = false
+    }
+}
+
+define org.genivi.commonapi.someip.deployment for provider as Service {
+    instance omnimetron.memory.MemoryUsageData {
+        InstanceId = "omnimetron.memory.MemoryUsageData"
+
+        SomeIpInstanceID = 22140
+
+        SomeIpUnicastAddress = "127.0.0.1"
+        SomeIpReliableUnicastPort = 30503
+        SomeIpUnreliableUnicastPort = 30504
+    }
+}

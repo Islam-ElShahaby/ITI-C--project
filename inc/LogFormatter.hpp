@@ -28,6 +28,7 @@ public:
             switch (Policy::context)
             {
                 case LogTelemetrySrc::Cpu: ctxStr = "CPU"; break;
+                case LogTelemetrySrc::CpuTemp: ctxStr = "CpuTemp"; break;
                 case LogTelemetrySrc::GPU: ctxStr = "GPU"; break;
                 case LogTelemetrySrc::Memory: ctxStr = "Memory"; break;
                 case LogTelemetrySrc::Disk: ctxStr = "Disk"; break;

@@ -1,0 +1,2 @@
+/home/mrdark/x-tools/aarch64-rpi3-linux-gnu/bin/aarch64-rpi3-linux-gnu-ar qc libLoggerBase.a CMakeFiles/LoggerBase.dir/src/LogManager.cpp.o CMakeFiles/LoggerBase.dir/src/LogSinks.cpp.o CMakeFiles/LoggerBase.dir/src/LogMessage.cpp.o CMakeFiles/LoggerBase.dir/src/TelemetrySources.cpp.o CMakeFiles/LoggerBase.dir/src/SafeFile.cpp.o CMakeFiles/LoggerBase.dir/src/SafeSocket.cpp.o CMakeFiles/LoggerBase.dir/src/ThreadPool.cpp.o CMakeFiles/LoggerBase.dir/src/Application.cpp.o
+/home/mrdark/x-tools/aarch64-rpi3-linux-gnu/bin/aarch64-rpi3-linux-gnu-ranlib libLoggerBase.a

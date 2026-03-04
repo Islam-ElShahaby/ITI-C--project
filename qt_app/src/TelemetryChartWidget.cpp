@@ -31,6 +31,12 @@ void RealtimeLineChart::addDataPoint(double value)
     }
 }
 
+void RealtimeLineChart::clearData()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_data.clear();
+}
+
 void RealtimeLineChart::paintEvent(QPaintEvent* /*event*/)
 {
     QPainter p(this);
@@ -38,6 +44,21 @@ void RealtimeLineChart::paintEvent(QPaintEvent* /*event*/)
 
     const int w = width();
     const int h = height();
+
+    // Auto-scale: compute effective Y range from data
+    double effectiveMin = m_minVal;
+    double effectiveMax = m_maxVal;
+    if (m_autoScale) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (!m_data.empty()) {
+            double lo = *std::min_element(m_data.begin(), m_data.end());
+            double hi = *std::max_element(m_data.begin(), m_data.end());
+            double padding = (hi - lo) * 0.1;
+            if (padding < 1.0) padding = 1.0;
+            effectiveMin = std::max(0.0, lo - padding);
+            effectiveMax = hi + padding;
+        }
+    }
 
     // Background
     QLinearGradient bgGrad(0, 0, 0, h);
@@ -93,7 +114,7 @@ void RealtimeLineChart::paintEvent(QPaintEvent* /*event*/)
         p.setPen(QPen(QColor(50, 50, 70), 1, Qt::DotLine));
         p.drawLine(marginL, y, w - marginR, y);
 
-        double val = m_maxVal - frac * (m_maxVal - m_minVal);
+        double val = effectiveMax - frac * (effectiveMax - effectiveMin);
         p.setPen(QColor(140, 140, 170));
         p.drawText(0, y - 10, marginL - 8, 20, Qt::AlignRight | Qt::AlignVCenter,
                    QString::number(val, 'f', 0) + m_unit);
@@ -102,7 +123,7 @@ void RealtimeLineChart::paintEvent(QPaintEvent* /*event*/)
     // Threshold lines
     auto drawThreshold = [&](double val, const QColor& color) {
         if (val < 0) return;
-        double frac = 1.0 - (val - m_minVal) / (m_maxVal - m_minVal);
+        double frac = 1.0 - (val - effectiveMin) / (effectiveMax - effectiveMin);
         int y = marginT + static_cast<int>(frac * chartH);
         if (y >= marginT && y <= marginT + chartH) {
             p.setPen(QPen(color, 1.5, Qt::DashLine));
@@ -125,7 +146,7 @@ void RealtimeLineChart::paintEvent(QPaintEvent* /*event*/)
     QPointF lastPt;
 
     for (int i = 0; i < n; ++i) {
-        double frac = 1.0 - (m_data[i] - m_minVal) / (m_maxVal - m_minVal);
+        double frac = 1.0 - (m_data[i] - effectiveMin) / (effectiveMax - effectiveMin);
         frac = std::clamp(frac, 0.0, 1.0);
         double x = marginL + (MAX_POINTS - n + i) * xStep;
         double y = marginT + frac * chartH;
@@ -200,6 +221,7 @@ TelemetryChartWidget::TelemetryChartWidget(const QString& configPath, QWidget* p
 
     m_memChart = new RealtimeLineChart("Memory Usage", "MB", 0, 32000,
                                         QColor(140, 80, 255), this);
+    m_memChart->setAutoScale(true);
     m_memChart->setWarningThreshold(8192);
     m_memChart->setCriticalThreshold(12288);
 
@@ -208,9 +230,15 @@ TelemetryChartWidget::TelemetryChartWidget(const QString& configPath, QWidget* p
     m_gpuChart->setWarningThreshold(80);
     m_gpuChart->setCriticalThreshold(95);
 
+    m_cpuTempChart = new RealtimeLineChart("CPU Temperature", "°C", 0, 110,
+                                            QColor(255, 140, 50), this);
+    m_cpuTempChart->setWarningThreshold(75);
+    m_cpuTempChart->setCriticalThreshold(90);
+
     layout->addWidget(m_cpuChart);
     layout->addWidget(m_memChart);
     layout->addWidget(m_gpuChart);
+    layout->addWidget(m_cpuTempChart);
 
     reloadEnabledFlags();
 
@@ -220,10 +248,12 @@ TelemetryChartWidget::TelemetryChartWidget(const QString& configPath, QWidget* p
         if (!m_cpuEnabled) m_cpuChart->addDataPoint(0);
         if (!m_memEnabled) m_memChart->addDataPoint(0);
         if (!m_gpuEnabled) m_gpuChart->addDataPoint(0);
+        if (!m_cpuTempEnabled) m_cpuTempChart->addDataPoint(0);
 
         m_cpuChart->update();
         m_memChart->update();
         m_gpuChart->update();
+        m_cpuTempChart->update();
     });
     m_refreshTimer->start(500); // 2 FPS
 }
@@ -247,12 +277,30 @@ void TelemetryChartWidget::reloadEnabledFlags()
     if (!root.contains("telemetry")) return;
     QJsonObject tel = root["telemetry"].toObject();
 
+    bool oldCpu = m_cpuEnabled.load();
+    bool oldMem = m_memEnabled.load();
+    bool oldGpu = m_gpuEnabled.load();
+    bool oldCpuTemp = m_cpuTempEnabled.load();
+
     if (tel.contains("cpu"))
         m_cpuEnabled = tel["cpu"].toObject().value("enabled").toBool(true);
     if (tel.contains("memory"))
         m_memEnabled = tel["memory"].toObject().value("enabled").toBool(true);
     if (tel.contains("gpu"))
         m_gpuEnabled = tel["gpu"].toObject().value("enabled").toBool(true);
+    if (tel.contains("cpu_temp"))
+        m_cpuTempEnabled = tel["cpu_temp"].toObject().value("enabled").toBool(true);
+
+    // Clear data when re-enabled so chart starts fresh
+    if (!oldCpu && m_cpuEnabled.load()) m_cpuChart->clearData();
+    if (!oldMem && m_memEnabled.load()) m_memChart->clearData();
+    if (!oldGpu && m_gpuEnabled.load()) m_gpuChart->clearData();
+    if (!oldCpuTemp && m_cpuTempEnabled.load()) m_cpuTempChart->clearData();
+
+    m_cpuChart->setVisible(m_cpuEnabled.load());
+    m_memChart->setVisible(m_memEnabled.load());
+    m_gpuChart->setVisible(m_gpuEnabled.load());
+    m_cpuTempChart->setVisible(m_cpuTempEnabled.load());
 }
 
 void TelemetryChartWidget::onLogMessage(const QString& /*formatted*/,
@@ -279,5 +327,7 @@ void TelemetryChartWidget::onLogMessage(const QString& /*formatted*/,
         m_memChart->addDataPoint(val);
     } else if (ctx == "gpu") {
         m_gpuChart->addDataPoint(val);
+    } else if (ctx == "cputemp") {
+        m_cpuTempChart->addDataPoint(val);
     }
 }

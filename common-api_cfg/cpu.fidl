@@ -1,0 +1,11 @@
+package omnimetron.cpu
+
+interface CpuUsageData {
+    version {major 1 minor 0}
+
+    method requestCpuUsageData {
+        out {
+            Float usage
+        }
+    }
+}

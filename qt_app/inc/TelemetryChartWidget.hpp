@@ -20,8 +20,10 @@ public:
                                 QWidget* parent = nullptr);
 
     void addDataPoint(double value);
+    void clearData();
     void setWarningThreshold(double val) { m_warningThreshold = val; }
     void setCriticalThreshold(double val) { m_criticalThreshold = val; }
+    void setAutoScale(bool on) { m_autoScale = on; }
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -34,6 +36,7 @@ private:
     double m_warningThreshold = -1;
     double m_criticalThreshold = -1;
     QColor m_lineColor;
+    bool m_autoScale = false;
 
     static constexpr int MAX_POINTS = 120; // ~2 minutes at 1s interval
     std::deque<double> m_data;
@@ -47,9 +50,10 @@ class TelemetryChartWidget : public QWidget
 public:
     explicit TelemetryChartWidget(const QString& configPath, QWidget* parent = nullptr);
 
-    RealtimeLineChart* cpuChart()    { return m_cpuChart; }
-    RealtimeLineChart* memoryChart() { return m_memChart; }
-    RealtimeLineChart* gpuChart()    { return m_gpuChart; }
+    RealtimeLineChart* cpuChart()      { return m_cpuChart; }
+    RealtimeLineChart* memoryChart()   { return m_memChart; }
+    RealtimeLineChart* gpuChart()      { return m_gpuChart; }
+    RealtimeLineChart* cpuTempChart()  { return m_cpuTempChart; }
 
 public slots:
     void onLogMessage(const QString& formatted, const QString& appName,
@@ -64,9 +68,11 @@ private:
     std::atomic<bool> m_cpuEnabled{true};
     std::atomic<bool> m_memEnabled{true};
     std::atomic<bool> m_gpuEnabled{true};
+    std::atomic<bool> m_cpuTempEnabled{true};
 
     RealtimeLineChart* m_cpuChart;
     RealtimeLineChart* m_memChart;
     RealtimeLineChart* m_gpuChart;
+    RealtimeLineChart* m_cpuTempChart;
     QTimer* m_refreshTimer;
 };

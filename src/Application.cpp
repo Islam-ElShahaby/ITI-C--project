@@ -7,7 +7,7 @@
 #include <sys/inotify.h>
 #include <unistd.h>
 #include <limits.h>
-// Pulls the first number out of a string like "CPU Load: 42.5%" so it can be passed to formatters
+
 static std::string extractValue(const std::string& text) {
     std::regex valRegex(R"([0-9]*\.?[0-9]+)"); 
     std::smatch match;
@@ -56,15 +56,61 @@ void Application::setupLogging() {
     }
 }
 
-void Application::setupTelemetry() {
-    // GPU connection
-    if (m_config.telemetry["gpu"].enabled) {
-        m_logger->log(LogMessage("Telemetry", "GPU", "Connecting to GPU service...", LogSeverity::INFO));
-        if (m_gpuSource.openSource()) {
-            m_logger->log(LogMessage("Telemetry", "GPU", "Connected to GPU service", LogSeverity::INFO));
-        } else {
-            m_logger->log(LogMessage("Telemetry", "GPU", "GPU service unavailable", LogSeverity::WARNING));
+std::unique_ptr<ITelemetrySource> Application::createSource(const std::string& component,
+                                                             const std::string& sourceType) {
+    if (sourceType == "vsomeip") {
+        if (component == "gpu") {
+            return std::make_unique<telemetry::SomeIPGpuSource>();
+        } else if (component == "cpu") {
+            return std::make_unique<telemetry::SomeIPCpuSource>();
+        } else if (component == "memory") {
+            return std::make_unique<telemetry::SomeIPMemorySource>();
+        } else if (component == "cpu_temp") {
+            return std::make_unique<telemetry::SomeIPCpuTempSource>();
         }
+        return nullptr;
+    }
+    // Default: local sources
+    if (component == "cpu") {
+        return std::make_unique<CpuTelemetrySource>();
+    } else if (component == "memory") {
+        return std::make_unique<MemoryTelemetrySource>();
+    } else if (component == "gpu") {
+        return std::make_unique<GpuTelemetrySource>();
+    } else if (component == "cpu_temp") {
+        return std::make_unique<CpuTempTelemetrySource>();
+    }
+    return nullptr;
+}
+
+void Application::setupTelemetry() {
+    for (const auto& [name, cfg] : m_config.telemetry) {
+        if (!cfg.enabled) continue;
+
+        auto source = createSource(name, cfg.source);
+        if (!source) {
+            m_logger->log(LogMessage("Telemetry", name, 
+                "No source available for component '" + name + "' with type '" + cfg.source + "'",
+                LogSeverity::WARNING));
+            continue;
+        }
+
+        std::string upperName = name;
+        for (char& c : upperName) c = std::toupper(static_cast<unsigned char>(c));
+
+        m_logger->log(LogMessage("Telemetry", upperName, 
+            "Initializing " + name + " source (type: " + cfg.source + ")", LogSeverity::INFO));
+
+        if (source->openSource()) {
+            m_logger->log(LogMessage("Telemetry", upperName, 
+                name + " source connected", LogSeverity::INFO));
+        } else {
+            m_logger->log(LogMessage("Telemetry", upperName, 
+                name + " source unavailable", LogSeverity::WARNING));
+        }
+
+        std::lock_guard<std::mutex> lock(m_sourcesMutex);
+        m_sources[name] = std::move(source);
     }
 }
 
@@ -74,8 +120,6 @@ void Application::start() {
     m_watchConfig = true;
     m_configWatcherThread = std::thread(&Application::watchConfig, this);
 
-    // Signal handling is owned by main() rather than here, so we just trust that
-    // stop() will be called externally when a shutdown signal arrives.
     runTelemetryLoop();
 }
 
@@ -99,66 +143,58 @@ void Application::stop() {
 void Application::runTelemetryLoop() {
     
     // Track when we last polled each source so we can respect per-source intervals
-    auto lastCpu = std::chrono::steady_clock::now();
-    auto lastMem = std::chrono::steady_clock::now();
-    auto lastGpu = std::chrono::steady_clock::now();
+    std::map<std::string, std::chrono::steady_clock::time_point> lastPoll;
 
     while (m_running) {
         auto now = std::chrono::steady_clock::now();
-        
-        bool cpuEnabled, memEnabled, gpuEnabled;
-        int cpuInterval, memInterval, gpuInterval;
-        
+
+        // Snapshot config under lock
+        std::map<std::string, TelemetryConfig> telConfig;
         {
             std::lock_guard<std::mutex> lock(m_configMutex);
-            cpuEnabled = m_config.telemetry["cpu"].enabled;
-            cpuInterval = m_config.telemetry["cpu"].interval;
-            memEnabled = m_config.telemetry["memory"].enabled;
-            memInterval = m_config.telemetry["memory"].interval;
-            gpuEnabled = m_config.telemetry["gpu"].enabled;
-            gpuInterval = m_config.telemetry["gpu"].interval;
+            telConfig = m_config.telemetry;
         }
-        
-        // --- CPU ---
-        if (cpuEnabled) {
-            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastCpu).count();
-            if (elapsed >= cpuInterval) {
-                if (m_cpuSource.openSource()) {
-                    std::string data;
-                    if (m_cpuSource.readSource(data)) {
+
+        for (const auto& [name, cfg] : telConfig) {
+            if (!cfg.enabled) continue;
+
+            // Initialize last poll time if first time
+            if (lastPoll.find(name) == lastPoll.end()) {
+                lastPoll[name] = now;
+            }
+
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                now - lastPoll[name]).count();
+            if (elapsed < cfg.interval) continue;
+
+            // Access the source under lock
+            std::lock_guard<std::mutex> srcLock(m_sourcesMutex);
+            auto it = m_sources.find(name);
+            if (it == m_sources.end() || !it->second) continue;
+
+            ITelemetrySource* src = it->second.get();
+            if (src->openSource()) {
+                std::string data;
+                if (src->readSource(data)) {
+                    // Use the appropriate formatter based on component name
+                    if (name == "cpu") {
                         auto msgOpt = m_cpuFormatter.formatDataToLogMsg(extractValue(data));
                         if (msgOpt) m_logger->log(*msgOpt);
-                    }
-                }
-                lastCpu = now;
-            }
-        }
-
-        // --- Memory ---
-        if (memEnabled) {
-            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastMem).count();
-            if (elapsed >= memInterval) {
-                if (m_memSource.openSource()) {
-                    std::string data;
-                    if (m_memSource.readSource(data)) {
+                    } else if (name == "memory") {
                         auto msgOpt = m_ramFormatter.formatDataToLogMsg(extractValue(data));
                         if (msgOpt) m_logger->log(*msgOpt);
+                    } else if (name == "cpu_temp") {
+                        auto msgOpt = m_cpuTempFormatter.formatDataToLogMsg(extractValue(data));
+                        if (msgOpt) m_logger->log(*msgOpt);
+                    } else {
+                        // For GPU and any other source, log the raw data
+                        std::string upperName = name;
+                        for (char& c : upperName) c = std::toupper(static_cast<unsigned char>(c));
+                        m_logger->log(LogMessage("Telemetry", upperName, data, LogSeverity::INFO));
                     }
                 }
-                lastMem = now;
             }
-        }
-
-        // --- GPU ---
-        if (gpuEnabled) {
-            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastGpu).count();
-            if (elapsed >= gpuInterval) {
-               std::string data;
-               if (m_gpuSource.readSource(data)) {
-                   m_logger->log(LogMessage("Telemetry", "GPU", data, LogSeverity::INFO));
-               }
-               lastGpu = now;
-            }
+            lastPoll[name] = now;
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -191,12 +227,14 @@ void Application::watchConfig() {
             if (m_logger) m_logger->log(LogMessage("Core", "Config", "Config modification detected. Reloading...", LogSeverity::INFO));
             
             AppConfig newConfig = AppConfig::load(m_configPath);
+            AppConfig oldConfig;
             {
                 std::lock_guard<std::mutex> lock(m_configMutex);
+                oldConfig = m_config;
                 m_config = newConfig;
             }
 
-            // Re-apply the routing table so sink changes take effect immediately
+            // Re-apply the routing table so sink changes take effect
             if (m_logger) {
                 m_logger->clearRouting();
                 for (const auto& [comp, cfg] : newConfig.telemetry) {
@@ -204,16 +242,43 @@ void Application::watchConfig() {
                         m_logger->configureRouting(comp, cfg.sinks);
                     }
                 }
-                // Re-inject any dynamically added sinks (e.g. Qt GUI sink)
+                // Re-inject the Qt GUI sink
                 std::lock_guard<std::mutex> lock(m_extraSinksMutex);
                 for (const auto& name : m_extraSinkNames) {
                     m_logger->addSinkToAllRoutes(name);
                 }
             }
+
+            // Recreate sources if source type changed or new sources appeared
+            {
+                std::lock_guard<std::mutex> srcLock(m_sourcesMutex);
+                for (const auto& [name, cfg] : newConfig.telemetry) {
+                    if (!cfg.enabled) {
+                        m_sources.erase(name);
+                        continue;
+                    }
+                    // Check if source needs recreation (new or type changed)
+                    bool needsNew = (m_sources.find(name) == m_sources.end());
+                    if (!needsNew) {
+                        // Compare old and new source type
+                        auto oldIt = oldConfig.telemetry.find(name);
+                        if (oldIt != oldConfig.telemetry.end() && oldIt->second.source != cfg.source) {
+                            needsNew = true;
+                        }
+                    }
+                    if (needsNew) {
+                        auto source = createSource(name, cfg.source);
+                        if (source) {
+                            source->openSource();
+                            m_sources[name] = std::move(source);
+                        }
+                    }
+                }
+            }
             
             if (m_logger) m_logger->log(LogMessage("Core", "Config", "Config loaded successfully", LogSeverity::INFO));
-            
-            // Re-add watch as some editors replace the file instead of modifying it
+
+            // Re-add watch
             inotify_add_watch(fd, m_configPath.c_str(), IN_MODIFY);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
